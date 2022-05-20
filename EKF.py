@@ -25,20 +25,22 @@ class ExtendedKalmanFilter:
     #def init(self):
     #    self.ux = self.N/2.0
     #    self.sx = 2.0*self.N
-
-    def update_models(self):
-        self.At = 0
-        self.Bt = 0
     
     def g(self, x, u):
         # Sistem Model (Kinematics for ex)
 
-        return x
+        # Update Jacobian
+        self.G = np.ones((3,3)) * 2
 
-    def h(self, x):
+        return x + 2 #(constant speed)
+
+    def h(self, x_bar):
         # Measurement/Sensor Model
 
-        return x
+        # Update Jacobian
+        self.H = np.array([[1, 0, 0], [0, 1, 0]])
+
+        return x_bar[0:2]
 
     def do_filter(self, ut, zt):
         """
@@ -58,9 +60,13 @@ class ExtendedKalmanFilter:
             yt = zt - self.h(self.mu_bar)
             # Normal Update
             H_T = np.transpose(self.H)
-            K = self.sigma_bar @ H_T @ np.inv(self.H @ self.sigma_bar @ H_T + self.Qt)
+            K = self.sigma_bar @ H_T @ np.linalg.inv(self.H @ self.sigma_bar @ H_T + self.Qt)
             self.mu = self.mu_bar + K @ yt
-            self.sigma = (np.eye() - K @ self.H) @ self.sigma_bar
+            self.sigma = (np.eye(3) - K @ self.H) @ self.sigma_bar
+            
+            # Save Innovation and Gains
+            self.yt = yt
+            self.K = K
 
 
 def main():
@@ -72,24 +78,34 @@ def main():
     #PEst = np.eye(4)
 
     # Probabilistic view
-    mu0 = np.zeros((3, 1)) # mu = [0, 0, 0]
+    mu0 = np.transpose([[2, 2, 0]]) # mu0 = np.zeros((3, 1))
     sigma0 = np.eye(3) # sigma = I (3x3)
+    print("State and Cov dims: ", mu0.shape, sigma0.shape)
+
     # Covariance Matrices
     R = np.diag([0.1, 0.1, np.deg2rad(1.0)]) ** 2
     Q = np.diag([1.0, 1.0]) ** 2
 
     # Init. Kalman Filter
     EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0)
-    print(EKF.Rt, EKF.Qt)
+    print("Rt: \n", EKF.Rt)
+    print("Qt: \n", EKF.Qt, "\n")
 
     # Init. Actions and Measures
     u = 0; 
     z = np.zeros((2, 1))
 
-    # Run Filter
+    # Robot moving in an environment
+    real_position = []
     for t in range(MAX_TIME):
+        real_position.append([t*2, t*2])
+        x = np.array(real_position[t])
+        z = x + np.random.normal(0, 1)
+        print("Real position: ", x.T)
+        print("Measurement z: ", z.T)
+        # Run Filter
         EKF.do_filter(u, z)
-        print("Time: ", t)
+        print("Time:", t, " Position: (", EKF.mu[0], ",", EKF.mu[1], ")\n")
 
 
 
