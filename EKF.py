@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import random
 
 
 class ExtendedKalmanFilter:
@@ -18,21 +17,19 @@ class ExtendedKalmanFilter:
         self.Qt = Qt
 
         # State Variables
-        self.x = mu_0
+        #self.x = mu_0
         # Measurements
-        self.z = [0, 0]
+        #self.z = [0, 0]
 
-    #def init(self):
-    #    self.ux = self.N/2.0
-    #    self.sx = 2.0*self.N
-    
+
     def g(self, x, u):
         # Sistem Model (Kinematics for ex)
 
         # Update Jacobian
-        self.G = np.ones((3,3)) * 2
+        self.G = np.diag([2, 2, 0])
 
         return x + 2 #(constant speed)
+
 
     def h(self, x_bar):
         # Measurement/Sensor Model
@@ -41,6 +38,7 @@ class ExtendedKalmanFilter:
         self.H = np.array([[1, 0, 0], [0, 1, 0]])
 
         return x_bar[0:2]
+
 
     def do_filter(self, ut, zt):
         """
@@ -70,43 +68,65 @@ class ExtendedKalmanFilter:
 
 
 def main():
-    MAX_TIME = 10
-
-    # State Vector [x y yaw v]'
-    #xEst = np.zeros((4, 1))
-    #xTrue = np.zeros((4, 1))
-    #PEst = np.eye(4)
+    import matplotlib.pyplot as plt
+    
+    # Simulation Time
+    MAX_TIME = 12
 
     # Probabilistic view
     mu0 = np.transpose([[2, 2, 0]]) # mu0 = np.zeros((3, 1))
-    sigma0 = np.eye(3) # sigma = I (3x3)
+    sigma0 = np.diag([1.0, 1.0, np.deg2rad(30.0)]) ** 2
     print("State and Cov dims: ", mu0.shape, sigma0.shape)
 
     # Covariance Matrices
-    R = np.diag([0.1, 0.1, np.deg2rad(1.0)]) ** 2
-    Q = np.diag([1.0, 1.0]) ** 2
+    R = np.diag([0.5, 0.5, np.deg2rad(1.0)]) ** 2
+    Q = np.diag([10.0, 10.0]) ** 2
 
     # Init. Kalman Filter
     EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0)
     print("Rt: \n", EKF.Rt)
     print("Qt: \n", EKF.Qt, "\n")
 
-    # Init. Actions and Measures
-    u = 0; 
+    # Init. Actions and Measurements
+    u = 0
     z = np.zeros((2, 1))
 
     # Robot moving in an environment
     real_position = []
+    measurements = []
+    pred = []
     for t in range(MAX_TIME):
-        real_position.append([t*2, t*2])
-        x = np.array(real_position[t])
-        z = x + np.random.normal(0, 1)
+        x = np.array([t*2, t*2], dtype=np.float32)
+        z = np.array([x[0] + np.random.normal(0, 1.1), x[1] + np.random.normal(0, 1.1)])
         print("Real position: ", x.T)
         print("Measurement z: ", z.T)
         # Run Filter
         EKF.do_filter(u, z)
         print("Time:", t, " Position: (", EKF.mu[0], ",", EKF.mu[1], ")\n")
+        # Collect for display later
+        real_position.append(x)
+        measurements.append(z)
+        pred.append(EKF.mu[0])
 
+
+    # Plot trajectory
+    plt.figure()
+    real_position = np.array(real_position)
+    plt.plot(real_position[:, 0], real_position[:, 1], ".-.")
+    measurements = np.array(measurements)
+    plt.plot(measurements[:, 0], measurements[:, 1], ".-.")
+    pred = np.array(pred)
+    plt.plot(pred[:, 0], pred[:, 1], ".-.")
+    plt.legend(["Real Position", "Measurements", "EKF Prediction"])
+    
+    # Plot Error
+    plt.figure()
+    plt.plot(np.linalg.norm(real_position - pred, axis=1))
+    plt.xlabel("Time (s)")
+    plt.ylabel("RMSE")
+    
+    # Show Graphics
+    plt.show()
 
 
 if __name__ == '__main__':
