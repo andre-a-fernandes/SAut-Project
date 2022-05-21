@@ -17,7 +17,11 @@ def p_multivariate_normal(x, mean, sigma):
     return math.exp(exponent) / math.sqrt(np.linalg.det(2*math.pi*sigma))
 
 
-def draw_cov_ellipse(mean, sigma):
+def draw_cov_ellipse(mean, sigma, ax=None):
+    """
+    From center point (mean) and Cov. matrix (sigma) draw error 
+    ellipse onto a plot.
+    """
     # Get ellipse orientation and axes lengths
     lambdas, vectors = np.linalg.eig(sigma)
     idx = np.argsort(lambdas)[1]
@@ -32,8 +36,11 @@ def draw_cov_ellipse(mean, sigma):
     new_ypos = mean[1] - xpos*np.sin(theta)+ypos*np.cos(theta)
 
     # Actually plot the ellipse
+    if ax is None:
+        ax = plt.gca()
     #plt.plot(xpos, ypos, 'b-')
-    plt.plot(new_xpos, new_ypos)#, 'r-')
+    ax.plot(new_xpos, new_ypos, 'gray')
+
 
     # Testing with 2D problem
 if __name__ == '__main__':
@@ -41,8 +48,17 @@ if __name__ == '__main__':
     MEAN = [1, 1]
     SIGMA = np.array([[1, 0.2],
                       [0.2, 1]])
+    mmm = [2, 3]
+    sss = np.array([[1, 0],
+                    [0, 1]])
 
+    # Plot
+    plt.figure()
+    plt.plot(MEAN[0], MEAN[1], "+", color="green")
     draw_cov_ellipse(MEAN, SIGMA)
-    draw_cov_ellipse([2, 3], SIGMA*-2.5)
+    plt.plot(mmm[0], mmm[1], "+", color="green")
+    draw_cov_ellipse(mmm, sss)
+    plt.plot(MEAN[0]*4, MEAN[1]*4, "+", color="green")
+    draw_cov_ellipse(np.array(MEAN)*4, SIGMA*0.5)
     plt.show()
     print("Probability: ", p_multivariate_normal([1, 1], MEAN, SIGMA))
