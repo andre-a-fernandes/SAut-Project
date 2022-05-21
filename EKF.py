@@ -1,9 +1,11 @@
 import numpy as np
 import utils
 
+PLOT_ELLIPSES = False
+
 
 class ExtendedKalmanFilter:
-    def __init__(self, Rt, Qt, mu_0, sigma_0):
+    def __init__(self, Rt, Qt, mu_0, sigma_0, dt):
         # Mean and Covariance
         self.mu = mu_0
         self.sigma = sigma_0
@@ -16,6 +18,9 @@ class ExtendedKalmanFilter:
         self.Rt = Rt
         self.Qt = Qt
 
+        # Discretization
+        self.dt = dt
+
         # State Variables
         # self.x = mu_0
         # Measurements
@@ -27,7 +32,7 @@ class ExtendedKalmanFilter:
         # Update Jacobian
         self.G = np.diag([2, 2, 0])
 
-        return x + 2  # (constant speed)
+        return x + 2*self.dt  # (constant speed)
 
     def h(self, x_bar):
         # Measurement/Sensor Model
@@ -70,6 +75,7 @@ def main():
 
     # Simulation Time
     MAX_TIME = 12
+    dt = 0.1
 
     # Probabilistic view
     mu0 = np.transpose([[1, 1, 0]])  # mu0 = np.zeros((3, 1))
@@ -77,11 +83,11 @@ def main():
     print("State and Cov dims: ", mu0.shape, sigma0.shape)
 
     # Covariance Matrices
-    R = np.diag([2, 2, np.deg2rad(10.0)]) ** 2
+    R = np.diag([1, 1, np.deg2rad(10.0)]) ** 2
     Q = np.diag([1.0, 1.0]) ** 2
 
     # Init. Kalman Filter
-    EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0)
+    EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0, dt)
     print("Rt: \n", EKF.Rt)
     print("Qt: \n", EKF.Qt, "\n")
 
@@ -94,15 +100,16 @@ def main():
     measurements = []
     pred = []
     cov = []
-    for t in range(MAX_TIME):
-        x = np.array([t*2, t*2], dtype=np.float32)
+    for timestep in range(int(MAX_TIME/dt)):
+        x = np.array([dt*timestep*2, dt*timestep*2], dtype=np.float32)
         z = np.array([x[0] + np.random.normal(0, 1),
                      x[1] + np.random.normal(0, 1.1)])
         print("Real position: ", x.T)
         print("Measurement z: ", z.T)
         # Run Filter
         EKF.do_filter(u, z)
-        print("Time:", t, " Position: (", EKF.mu[0], ",", EKF.mu[1], ")\n")
+        print("Time:", dt*timestep, " Position: (",
+              EKF.mu[0], ",", EKF.mu[1], ")\n")
         # Collect for display later
         real_position.append(x)
         measurements.append(z)
@@ -122,16 +129,17 @@ def main():
     # Plot Predicted Position
     pred = np.array(pred)
     plt.plot(pred[:, 0], pred[:, 1], ".")  # -.")
-    i = 0
-    for element in cov:
-        utils.draw_cov_ellipse(pred[i, :], element, ax)
-        i += 1
+    if PLOT_ELLIPSES:
+        i = 0
+        for element in cov:
+            utils.draw_cov_ellipse(pred[i, :], element, ax)
+            i += 1
     plt.legend(["Real Position", "Measurements", "EKF Prediction"])
 
     # Plot Error
     plt.figure()
     plt.plot(np.linalg.norm(real_position - pred, axis=1))
-    plt.xlabel("Time (s)")
+    plt.xlabel("Time (s) * 10")
     plt.ylabel("RMSE")
 
     # Show Graphics
