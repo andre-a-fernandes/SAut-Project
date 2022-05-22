@@ -30,7 +30,7 @@ class ExtendedKalmanFilter:
         # Sistem Model (Kinematics for ex)
 
         # Update Jacobian
-        self.G = np.diag([2, 2, 0])
+        self.G = np.diag([1, 1, 0])
 
         return x + 2*self.dt  # (constant speed)
 
@@ -79,12 +79,12 @@ def main():
 
     # Probabilistic view
     mu0 = np.transpose([[1, 1, 0]])  # mu0 = np.zeros((3, 1))
-    sigma0 = np.diag([1.0, 1.0, np.deg2rad(20.0)]) ** 2
+    sigma0 = np.diag([2.0, 2.0, np.deg2rad(20.0)]) ** 2
     print("State and Cov dims: ", mu0.shape, sigma0.shape)
 
     # Covariance Matrices
-    R = np.diag([1, 1, np.deg2rad(10.0)]) ** 2
-    Q = np.diag([1.0, 1.0]) ** 2
+    R = np.diag([0.5, 0.5, np.deg2rad(10.0)]) ** 2
+    Q = np.diag([4.0, 2.5]) ** 2
 
     # Init. Kalman Filter
     EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0, dt)
@@ -102,7 +102,7 @@ def main():
     cov = []
     for timestep in range(int(MAX_TIME/dt)):
         x = np.array([dt*timestep*2, dt*timestep*2], dtype=np.float32)
-        z = np.array([x[0] + np.random.normal(0, 1),
+        z = np.array([x[0] + np.random.normal(0, 2.0),
                      x[1] + np.random.normal(0, 1.1)])
         print("Real position: ", x.T)
         print("Measurement z: ", z.T)
