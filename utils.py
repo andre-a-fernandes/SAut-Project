@@ -26,10 +26,10 @@ def draw_cov_ellipse(mean, sigma, ax=None):
     lambdas, vectors = np.linalg.eig(sigma)
     idx = np.argsort(lambdas)[1]
 
-    # Create the ellipse
+    # Create the CI-95% ellipse
     z = np.arange(0, 2*np.pi, 0.01)
-    xpos = lambdas[0]*np.cos(z)
-    ypos = lambdas[1]*np.sin(z)
+    xpos = 2*math.sqrt(5.991*lambdas[0])*np.cos(z)
+    ypos = 2*math.sqrt(5.991*lambdas[1])*np.sin(z)
     # Rotate throught the eigenvectors
     theta = np.arctan(vectors[idx][1]/(vectors[idx][0] + 1e-9))
     new_xpos = mean[0] + xpos*np.cos(theta)+ypos*np.sin(theta)
