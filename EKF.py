@@ -186,7 +186,7 @@ def main():
 
     # Probabilistic view
     mu0 = np.transpose([[0, 0, np.deg2rad(45.0)]])
-    sigma0 = np.diag([2.0, 2.0, np.deg2rad(20.0)]) ** 2
+    sigma0 = np.diag([1.5, 1.5, np.deg2rad(20.0)]) ** 2
     print("State and Cov dims: ", mu0.shape, sigma0.shape)
 
     # Covariance Matrices

@@ -2,14 +2,55 @@ import numpy as np
 import math
 
 
+def euler_from_quaternion(x: float, y: float, z: float, w: float):
+    """
+    Convert a quaternion (`x`,`y`,`z`,`w`) into Euler angles (roll, pitch, yaw).
+
+    ## Parameters
+
+    x : first quaternion vector coordinate
+    y : second quaternion vector coordinate
+    z : third quaternion vector coordinate
+    w : quaternion scalar part
+
+    ## Returns
+
+    roll : rotation around x in radians (counterclockwise)
+    pitch : rotation around y in radians (counterclockwise)
+    yaw : rotation around z in radians (counterclockwise)
+
+    """
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = math.atan2(t0, t1)
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = math.asin(t2)
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw_z = math.atan2(t3, t4)
+
+    return roll_x, pitch_y, yaw_z  # in radians
+
+
 def p_multivariate_normal(x, mean, sigma):
     """
-    Computes the probability of an arbitrary array (state) given that
-    the underlying random variable is normally distributed.
+    Computes the probability of an arbitrary array (state) 
+    given that the underlying random variable is normally 
+    distributed.
+
+    ## Parameters
 
     x : r.v realization                              (n, 1)
     mean : mean value for the r.v                    (n, 1)
     sigma : along with 'mean' parametrizes the r.v   (n, n)
+
+    ## Returns
+
+    p : probability of the realization `x`
     """
     x = np.array(x)
     mean = np.array(mean)
@@ -19,8 +60,8 @@ def p_multivariate_normal(x, mean, sigma):
 
 def draw_cov_ellipse(mean, sigma, ax=None):
     """
-    From center point (mean) and Cov. matrix (sigma) draw error 
-    ellipse onto a plot.
+    From center point (mean) and Cov. matrix (sigma) draw 
+    error ellipse onto a plot.
     """
     # Get ellipse orientation and axes lengths
     lambdas, vectors = np.linalg.eig(sigma)
@@ -40,7 +81,6 @@ def draw_cov_ellipse(mean, sigma, ax=None):
         ax = plt.gca()
     #plt.plot(xpos, ypos, 'b-')
     ax.plot(new_xpos, new_ypos, 'gray')
-
 
     # Testing with 2D problem
 if __name__ == '__main__':
