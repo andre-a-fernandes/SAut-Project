@@ -1,5 +1,34 @@
 import numpy as np
 import math
+from sensor_msgs import point_cloud2
+
+
+def create_pointcloud(data):
+    """
+    Extract list of points from the PointCloud2 messages.
+
+    ## Parameters
+
+    data : individual ROS (point_cloud2) message
+
+    ## Returns
+
+    cloud : list of points (3D coordinates and intensity)
+    """
+    #assert isinstance(data, PointCloud2)
+    gen = point_cloud2.read_points(data)
+    
+    # Declare pointcloud as list
+    cloud = []
+    i = 0;
+    for p in gen:
+        # Print instead a count of points
+        if i == 0:
+            print("First Point:", p)
+        cloud.append(p)
+        i += 1
+    
+    return cloud  
 
 
 def euler_from_quaternion(x: float, y: float, z: float, w: float):
@@ -81,6 +110,7 @@ def draw_cov_ellipse(mean, sigma, ax=None):
         ax = plt.gca()
     #plt.plot(xpos, ypos, 'b-')
     ax.plot(new_xpos, new_ypos, 'gray')
+
 
     # Testing with 2D problem
 if __name__ == '__main__':

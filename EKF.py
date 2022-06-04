@@ -4,8 +4,8 @@ import utils
 
 PLOT_ELLIPSES = False
 # Sensor Position relative to the Body-Frame
-X_S = 0
-Y_S = 0
+X_S = 0.16
+Y_S = 0.16
 
 
 class ExtendedKalmanFilter:
