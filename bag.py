@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from bagpy import bagreader
-from utils import euler_from_quaternion, create_pointcloud, update_3Dplot
+from utils import euler_from_quaternion, create_pointcloud, update_3Dplot, update_2Dplot
 import rosbag
 import matplotlib.animation as animation
 
@@ -11,7 +11,7 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 3
+OPT = 0
 
 # Read Rosbag
 if OPT == 0:
@@ -24,7 +24,7 @@ if OPT == 3:
     bag = rosbag.Bag('data/bags/2hazCam.bag')
 
 # See the topics and save them
-# print(b.topic_table)
+#print(b.topic_table)
 if OPT == 0:
     pose = b.message_by_topic('/loc/pose')
     twist = b.message_by_topic('/loc/twist')
@@ -127,7 +127,8 @@ if OPT == 0:
     plt.xlabel("Time")
 
     # Save data
-    true_pose_all = np.vstack((true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
+    true_pose_all = np.vstack(
+        (true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
     np.save("pose3D", true_pose_all.T)
     np.save("twist3D", true_twist_array[:, [5, 6, 10]])
     print((true_pose_all.T).shape)
@@ -192,22 +193,62 @@ if OPT == 1:
     np.save("theta+w", vel_all.T)
 
 if OPT == 3:
+    #"""
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    scanplot, = ax.plot([], [], '.')
+    #"""
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     scanplot, = ax.plot([], [], [], '.')
     ax.view_init(elev=20, azim=-178)
+    """
     plt.title("Point Cloud Scans")
-    plt.xlabel("x");# plt.xlim(-2.5, 2.5)
-    plt.ylabel("y");# plt.ylim(-2.5, 2.5)
+    plt.xlabel("x")  # plt.xlim(-2.5, 2.5)
+    plt.ylabel("y")  # plt.ylim(-2.5, 2.5)
 
-    """
+    #"""
+    # Flatten Point Cloud Data
+    fixedZ_total = []
+    N = 30000
+    # For each sensor image (cloud)
     for i in range(cloud_array.shape[0]):
-        ax = plt.axes(projection='3d')
-        ax.plot(cloud_array[i, :, 2], cloud_array[i, :, 1], cloud_array[i, :, 0], '.')
-        plt.show()
-    """
+        point_list = []
+        zero_count = 0
+        # For every point in the cloud
+        for t in range(cloud_array.shape[1]):
+            p = cloud_array[i, t, :]
+            if p[1] > -0.2 and p[1] < 0.2:
+                point_list.append(p)
+                zero_count += 1
+        # Save fixed-z pointcloud
+        point_list = np.array(point_list)
+        #print(point_list.shape)
+        point_list = np.vstack((point_list.reshape((zero_count, 4)), np.zeros((N-zero_count,4))))
+        #print(point_list.shape)
+        fixedZ_total.append(point_list)
+    fixedZ_total = np.array(fixedZ_total)
+    print(fixedZ_total.shape)
+    #"""
+
+    """# Plot 2D "Maps"
+    for i in range(fixedZ_total.shape[0]):
+        plt.figure()
+        ax = plt.axes()#projection='3d')
+        ax.plot(fixedZ_total[i, :, 2], fixedZ_total[i, :,0], '.')
+        plt.show()"""
     
-    ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
+    # ANIMATION
+    """ 3D:
+    ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(
+        scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
     ani.save('abel.gif')
+    """
+    #"""
+    ani = animation.FuncAnimation(fig, update_2Dplot, fargs=(
+        scanplot, fixedZ_total), frames=fixedZ_total.shape[0], interval=100, blit=True)
+    ani.save('abel2d.gif')
+    #"""
 
 plt.show()

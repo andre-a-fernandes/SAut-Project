@@ -9,7 +9,15 @@ def update_3Dplot(i, line, data):
     """
     line.set_data(data[i, :, 2], data[i, :, 0])
     line.set_3d_properties(data[i, :, 1])
-    return line, 
+    return line,
+
+def update_2Dplot(i, line, data):
+    """
+    Return the new surface of points to be
+    displayed using matplotlib's `FuncAnimation`.
+    """
+    line.set_data(data[i, :, 2], data[i, :, 0])
+    return line,
 
 def create_pointcloud(data):
     """
