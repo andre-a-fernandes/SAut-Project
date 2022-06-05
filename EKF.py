@@ -46,45 +46,29 @@ class ExtendedKalmanFilter:
     def g(self, x, u):
         """
         Gives a prediction for the next robot state
-        from the current one via the 'Odometry Motion
+        from the current one via a 'Constant Velocity
         Model'. Aditionally, it computes the Jacobian
         for the linearization at that point.
 
-        x: current state (x, y, theta)
-        u: input (V, w) - LEGACY: 'action' input (rot_1, transl, rot_2)
+        ## Parameters
+
+        x : current state (x, y, theta)
+        u : input (V, w)
         """
         # Innertial Model (Constant Velocity)
-        if self.innertial:
-            # Kinematics
-            # K = np.array([[math.cos(x[2]), 0],
-            #              [math.sin(x[2]), 0],
-            #              [0,              1]])
-            #x_dot = np.reshape(K @ u, (3, 1))
-            #x_dot = np.zeros_like(x)
-            #x_dot[0] = u[0]*math.cos(x[2])
-            #x_dot[1] = u[0]*math.sin(x[2])
-            #x_dot[2] = u[1]
-            #x_next = x + x_dot*self.dt
+        K = np.array([[math.cos(x[2]), 0],
+                      [math.sin(x[2]), 0],
+                      [0,              1]])
+        x_dot = K @ u
+        #x_dot[0] = u[0]*math.cos(x[2])
+        #x_dot[1] = u[0]*math.sin(x[2])
+        #x_dot[2] = u[1]
+        x_next = x + x_dot*self.dt
 
-            # Update Jacobian G
-            self.G = np.diag([1, 1, 0])
+        # Update Jacobian G
+        self.G = np.diag([1, 1, 0])
 
-            return x + math.sqrt(2)*self.dt
-
-        if not self.innertial:
-            x_next = np.zeros_like(x)
-
-            # Odometry Motion Model
-            x_next[0] = x[0] + u[1]*math.cos(x[2] + u[0])
-            x_next[1] = x[1] + u[1]*math.sin(x[2] + u[0])
-            x_next[2] = x[2] + u[0] + u[2]
-
-            # Update Jacobian G
-            self.G = np.array([[1, 0, -u[1]*math.sin(x[2] + u[0])],
-                               [0, 1, -u[1]*math.cos(x[2] + u[0])],
-                               [0, 0, 1]])
-
-            return x_next
+        return x_next
 
     def predict(self, ut):
         """
@@ -163,10 +147,10 @@ class ExtendedKalmanFilter:
         else:
             # Sensor location in body
             x_bar = self.mu_bar
-            # ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
-            #                [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
-            #                [0,                 0,                1]])
-            x_sensor = x_bar  # + ROT @ [X_S, Y_S, zt[1]]
+            ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
+                            [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
+                            [0,                 0,                1]])
+            x_sensor = x_bar + ROT @ [X_S, Y_S, zt[1]]
 
             # for landmark in self.map:
             #    self.update(zt, x_bar, True)
@@ -184,14 +168,14 @@ def main():
     MAX_TIME = 12
     dt = 0.2
 
-    # Probabilistic view
-    mu0 = np.transpose([[0, 0, np.deg2rad(45.0)]])
-    sigma0 = np.diag([1.5, 1.5, np.deg2rad(20.0)]) ** 2
+    # Starting Guesstimate (Prob.)
+    mu0 = np.transpose([0, 0, np.deg2rad(45.0)])
+    sigma0 = np.diag([1.5, 1.3, np.deg2rad(20.0)]) ** 2
     print("State and Cov dims: ", mu0.shape, sigma0.shape)
 
-    # Covariance Matrices
+    # Process and Observation noise Cov. Matrices
     R = np.diag([0.1, 0.1, np.deg2rad(10.0)]) ** 2
-    Q = np.diag([1.3, 1.1]) ** 2
+    Q = np.diag([1.4, 1.1]) ** 2
 
     # Init. Kalman Filter
     EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0, dt)
@@ -210,22 +194,22 @@ def main():
     for timestep in range(int(MAX_TIME/dt)):
         x = np.array([dt*timestep*math.sqrt(2), dt*timestep*math.sqrt(2)])
         z = np.array([x[0] + np.random.normal(0, 2.0),
-                     x[1] + np.random.normal(0, 1.1)])
+                      x[1] + np.random.normal(0, 1.1)])
         print("Real position: ", x.T)
         print("Measurement z: ", z.T)
         # Run Filter
         EKF.do_filter(u, z)
-        print(EKF.mu.shape)
         print("Time:", dt*timestep, " Position: (",
               EKF.mu[0], ",", EKF.mu[1], ")\n")
         # Collect for display later
         real_position.append(x)
         measurements.append(z)
-        pred.append(EKF.mu[0])
+        pred.append(EKF.mu[0:2])
         cov.append(EKF.sigma)
 
-    # Plot trajectory
-    plt.figure()
+
+    # Plot Trajectory
+    fig = plt.figure()
     plt.subplot(121)
     ax = plt.gca()
     real_position = np.array(real_position)
@@ -235,9 +219,10 @@ def main():
     measurements = np.array(measurements)
     plt.plot(measurements[:, 0], measurements[:, 1], ".")  # -.")
 
-    # Plot Predicted Position
+    # Plot Mean Prediction
     pred = np.array(pred)
     plt.plot(pred[:, 0], pred[:, 1], ".")  # -.")
+    # Plot w/ Cov.
     if PLOT_ELLIPSES:
         i = 0
         for element in cov:
@@ -252,8 +237,8 @@ def main():
     plt.ylabel("RMSE")
 
     # Show Graphics
+    fig.suptitle("Tests with Dummy Data")
     plt.show()
-
 
 if __name__ == '__main__':
     main()

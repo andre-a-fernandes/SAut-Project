@@ -10,7 +10,7 @@ import matplotlib.animation as animation
 # 0 - POSE
 # 1 - IMU
 # 2 - MAP
-# 3 -SCAN
+# 3 - SCAN
 OPT = 3
 
 # Read Rosbag
@@ -49,14 +49,14 @@ if OPT == 3:
         idx += 1
 
 
-    # Create numpy arrays for the data
+# Create numpy arrays for the data
 if OPT == 0:
     pose_array = np.genfromtxt(pose, delimiter=',')
     twist_array = np.genfromtxt(twist, delimiter=',')
     true_pose_array = np.genfromtxt(pose_truth, delimiter=',')
     true_twist_array = np.genfromtxt(twist_truth, delimiter=',')
     #print(pose_array.shape, twist_array.shape)
-    #print(true_pose_array.shape, true_twist_array.shape)
+    print(true_pose_array.shape, true_twist_array.shape)
 if OPT == 1:
     imu_array = np.genfromtxt(imu, delimiter=',')
     print(imu_array.shape)
@@ -126,6 +126,13 @@ if OPT == 0:
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 10])
     plt.xlabel("Time")
 
+    # Save data
+    true_pose_all = np.vstack((true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
+    np.save("pose3D", true_pose_all.T)
+    np.save("twist3D", true_twist_array[:, [5, 6, 10]])
+    print((true_pose_all.T).shape)
+    print(true_twist_array[:, [5, 6, 10]].shape)
+
 if OPT == 1:
 
     # IMU Vars
@@ -179,6 +186,11 @@ if OPT == 1:
     plt.plot(imu_array[:, 0], imu_array[:, 32])
     plt.xlabel("Time")
 
+    # Save data
+    vel_all = np.vstack((yaw_imu, imu_array[:, 20]))
+    print((vel_all.T).shape)
+    np.save("theta+w", vel_all.T)
+
 if OPT == 3:
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -188,13 +200,14 @@ if OPT == 3:
     plt.xlabel("x");# plt.xlim(-2.5, 2.5)
     plt.ylabel("y");# plt.ylim(-2.5, 2.5)
 
-    """print(cloud_array[-1, 0, :])
+    """
     for i in range(cloud_array.shape[0]):
         ax = plt.axes(projection='3d')
         ax.plot(cloud_array[i, :, 2], cloud_array[i, :, 1], cloud_array[i, :, 0], '.')
-        plt.show()"""
-
-    #multi_slice_viewer(cloud_array.T)
+        plt.show()
+    """
+    
     ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
     ani.save('abel.gif')
-    plt.show()
+
+plt.show()
