@@ -1,15 +1,93 @@
 import numpy as np
 import math
+from sensor_msgs import point_cloud2
+
+def update_3Dplot(i, line, data):
+    """
+    Return the new point cloud to be plotted;
+    used for a matplotlib `FuncAnimation`.
+    """
+    line.set_data(data[i, :, 2], data[i, :, 0])
+    line.set_3d_properties(data[i, :, 1])
+    return line, 
+
+def create_pointcloud(data):
+    """
+    Extract list of points from the PointCloud2 messages.
+
+    ## Parameters
+
+    data : individual ROS (point_cloud2) message
+
+    ## Returns
+
+    cloud : list of points (3D coordinates and intensity)
+    """
+    #assert isinstance(data, PointCloud2)
+    gen = point_cloud2.read_points(data)
+    
+    # Declare pointcloud as list
+    cloud = []
+    i = 0;
+    for p in gen:
+        # Print instead a count of points
+        if i == 0:
+            print("First Point:", p)
+        cloud.append(p)
+        i += 1
+    
+    return cloud  
+
+
+def euler_from_quaternion(x: float, y: float, z: float, w: float):
+    """
+    Convert a quaternion (`x`,`y`,`z`,`w`) into Euler angles (roll, pitch, yaw).
+
+    ## Parameters
+
+    x : first quaternion vector coordinate
+    y : second quaternion vector coordinate
+    z : third quaternion vector coordinate
+    w : quaternion scalar part
+
+    ## Returns
+
+    roll : rotation around x in radians (counterclockwise)
+    pitch : rotation around y in radians (counterclockwise)
+    yaw : rotation around z in radians (counterclockwise)
+
+    """
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = math.atan2(t0, t1)
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = math.asin(t2)
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw_z = math.atan2(t3, t4)
+
+    return roll_x, pitch_y, yaw_z  # in radians
 
 
 def p_multivariate_normal(x, mean, sigma):
     """
-    Computes the probability of an arbitrary array (state) given that
-    the underlying random variable is normally distributed.
+    Computes the probability of an arbitrary array (state) 
+    given that the underlying random variable is normally 
+    distributed.
+
+    ## Parameters
 
     x : r.v realization                              (n, 1)
     mean : mean value for the r.v                    (n, 1)
     sigma : along with 'mean' parametrizes the r.v   (n, n)
+
+    ## Returns
+
+    p : probability of the realization `x`
     """
     x = np.array(x)
     mean = np.array(mean)
@@ -19,17 +97,17 @@ def p_multivariate_normal(x, mean, sigma):
 
 def draw_cov_ellipse(mean, sigma, ax=None):
     """
-    From center point (mean) and Cov. matrix (sigma) draw error 
-    ellipse onto a plot.
+    From center point (mean) and Cov. matrix (sigma) draw 
+    error ellipse onto a plot.
     """
     # Get ellipse orientation and axes lengths
     lambdas, vectors = np.linalg.eig(sigma)
     idx = np.argsort(lambdas)[1]
 
-    # Create the ellipse
+    # Create the CI-95% ellipse
     z = np.arange(0, 2*np.pi, 0.01)
-    xpos = lambdas[0]*np.cos(z)
-    ypos = lambdas[1]*np.sin(z)
+    xpos = 2*math.sqrt(5.991*lambdas[0])*np.cos(z)
+    ypos = 2*math.sqrt(5.991*lambdas[1])*np.sin(z)
     # Rotate throught the eigenvectors
     theta = np.arctan(vectors[idx][1]/(vectors[idx][0] + 1e-9))
     new_xpos = mean[0] + xpos*np.cos(theta)+ypos*np.sin(theta)
