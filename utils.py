@@ -2,6 +2,14 @@ import numpy as np
 import math
 from sensor_msgs import point_cloud2
 
+def update_3Dplot(i, line, data):
+    """
+    Return the new point cloud to be plotted;
+    used for a matplotlib `FuncAnimation`.
+    """
+    line.set_data(data[i, :, 2], data[i, :, 0])
+    line.set_3d_properties(data[i, :, 1])
+    return line, 
 
 def create_pointcloud(data):
     """

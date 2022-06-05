@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from bagpy import bagreader
-from utils import euler_from_quaternion, create_pointcloud
+from utils import euler_from_quaternion, create_pointcloud, update_3Dplot
 import rosbag
-from plot import multi_slice_viewer, update_3D
 import matplotlib.animation as animation
 
 # OPTIONS:
@@ -184,9 +183,10 @@ if OPT == 3:
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     scanplot, = ax.plot([], [], [], '.')
+    ax.view_init(elev=20, azim=-178)
     plt.title("Point Cloud Scans")
-    plt.xlabel("x"); plt.xlim(-2, 2)
-    plt.ylabel("y"); plt.ylim(-2, 2)
+    plt.xlabel("x");# plt.xlim(-2.5, 2.5)
+    plt.ylabel("y");# plt.ylim(-2.5, 2.5)
 
     """print(cloud_array[-1, 0, :])
     for i in range(cloud_array.shape[0]):
@@ -195,6 +195,6 @@ if OPT == 3:
         plt.show()"""
 
     #multi_slice_viewer(cloud_array.T)
-    ani = animation.FuncAnimation(fig, update_3D, fargs=(scanplot, cloud_array), frames=cloud_array.shape[0], interval=10, blit=True)
+    ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
     ani.save('abel.gif')
     plt.show()
