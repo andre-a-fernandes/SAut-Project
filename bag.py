@@ -11,7 +11,7 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 0
+OPT = 3
 
 # Read Rosbag
 if OPT == 0:
