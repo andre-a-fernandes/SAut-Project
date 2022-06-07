@@ -11,23 +11,29 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 0
+OPT = 4
 
 # Read Rosbag
 if OPT == 0:
-    b = bagreader('data/bags/2truth+EKF.bag')
+    #b = bagreader('data/bags/2truth+EKF.bag')
+    b = bagreader('data/bags/truth2.bag')
 if OPT == 1:
-    b = bagreader('data/bags/2imu.bag')
+    b = bagreader('data/bags/imu2.bag')
 if OPT == 2:
     b = bagreader('data/bags/navCam.bag')
 if OPT == 3:
     bag = rosbag.Bag('data/bags/2hazCam.bag')
+if OPT == 4:
+    b = bagreader('data/bags/optical2.bag')
+    b2 = bagreader('data/bags/landmarks2.bag')
 
 # See the topics and save them
-#print(b.topic_table)
+print(b.topic_table)
+print(b2.topic_table)
 if OPT == 0:
-    pose = b.message_by_topic('/loc/pose')
-    twist = b.message_by_topic('/loc/twist')
+    #pose = b.message_by_topic('/loc/pose')
+    #twist = b.message_by_topic('/loc/twist')
+    ekf = b.message_by_topic('/gnc/ekf')
     pose_truth = b.message_by_topic('/loc/truth/pose')
     twist_truth = b.message_by_topic('/loc/truth/twist')
 if OPT == 1:
@@ -47,15 +53,20 @@ if OPT == 3:
             print("\n")
             cloud.append(points_in_msg)
         idx += 1
+if OPT == 4:
+    of = b.message_by_topic('/loc/of/features')
+    ml = b2.message_by_topic('/loc/ml/features')
 
 
 # Create numpy arrays for the data
 if OPT == 0:
-    pose_array = np.genfromtxt(pose, delimiter=',')
-    twist_array = np.genfromtxt(twist, delimiter=',')
+    #pose_array = np.genfromtxt(pose, delimiter=',')
+    #twist_array = np.genfromtxt(twist, delimiter=',')
+    ekf_array = np.genfromtxt(ekf, delimiter=',')
     true_pose_array = np.genfromtxt(pose_truth, delimiter=',')
     true_twist_array = np.genfromtxt(twist_truth, delimiter=',')
     #print(pose_array.shape, twist_array.shape)
+    print(ekf_array.shape)
     print(true_pose_array.shape, true_twist_array.shape)
 if OPT == 1:
     imu_array = np.genfromtxt(imu, delimiter=',')
@@ -80,7 +91,8 @@ if OPT == 0:
     plt.title("Position in the World Frame")
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.plot(pose_array[:, 5], pose_array[:, 6])
+    #plt.plot(pose_array[:, 5], pose_array[:, 6])
+    plt.plot(ekf_array[:, 6], ekf_array[:, 7])
     plt.plot(true_pose_array[:, 5], true_pose_array[:, 6])
 
     # State Vars
@@ -88,16 +100,19 @@ if OPT == 0:
     plt.subplot(311)
     plt.title("State Variables (Estimates vs. Truth)")
     plt.ylabel("x")
-    plt.plot(pose_array[:, 0], pose_array[:, 5])
+    #plt.plot(pose_array[:, 0], pose_array[:, 5])
+    plt.plot(ekf_array[:, 0], ekf_array[:, 6])
     plt.plot(true_pose_array[:, 0], true_pose_array[:, 5])
     plt.subplot(312)
     plt.ylabel("y")
-    plt.plot(pose_array[:, 0], pose_array[:, 6])
+    #plt.plot(pose_array[:, 0], pose_array[:, 6])
+    plt.plot(ekf_array[:, 0], ekf_array[:, 7])
     plt.plot(true_pose_array[:, 0], true_pose_array[:, 6])
     plt.subplot(313)
     plt.ylabel("$\Theta$")
     yaw = []
     true_yaw = []
+    pose_array = ekf_array[:, 1:-1]
     for i in range(pose_array[:, 8].shape[0]):
         _, _, angle = euler_from_quaternion(
             pose_array[i, 8], pose_array[i, 9], pose_array[i, 10], pose_array[i, 11])
@@ -106,7 +121,8 @@ if OPT == 0:
         _, _, true_angle = euler_from_quaternion(
             true_pose_array[i, 8], true_pose_array[i, 9], true_pose_array[i, 10], true_pose_array[i, 11])
         true_yaw.append(true_angle)
-    plt.plot(pose_array[:, 0], np.degrees(yaw))
+    #plt.plot(pose_array[:, 0], np.degrees(yaw))
+    plt.plot(ekf_array[:, 0], np.degrees(yaw))
     plt.plot(true_pose_array[:, 0], np.degrees(true_yaw))
     plt.xlabel("Time")
 
@@ -114,15 +130,15 @@ if OPT == 0:
     plt.figure(3)
     plt.subplot(311)
     plt.ylabel("$V_x$")
-    plt.plot(twist_array[:, 0], twist_array[:, 5])
+    #plt.plot(twist_array[:, 0], twist_array[:, 5])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 5])
     plt.subplot(312)
     plt.ylabel("$V_y$")
-    plt.plot(twist_array[:, 0], twist_array[:, 6])
+    #plt.plot(twist_array[:, 0], twist_array[:, 6])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 6])
     plt.subplot(313)
     plt.ylabel("$\omega$")
-    plt.plot(true_twist_array[:, 0], true_twist_array[:, 10])
+    #plt.plot(twist_array[:, 0], twist_array[:, 10])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 10])
     plt.xlabel("Time")
 
