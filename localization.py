@@ -2,7 +2,8 @@ from map import choose_landmark_map
 import numpy as np
 from ekf import ExtendedKalmanFilter
 import matplotlib.pyplot as plt
-import utils, time
+import utils
+import time
 
 PLOT_ELLIPSES = False
 INNERTIAL = True
@@ -18,7 +19,7 @@ def main():
 
     # Simulation Info
     MAX_TIME = 12
-    dt = 1/62.5 #for this data
+    dt = 1/62.5  # for this data
     #dt = 0.2
 
     # Define Landmark Map
@@ -53,7 +54,7 @@ def main():
     time = []
 
     # Robot in an environment
-    for timestep in range(2,realPose.shape[0]):
+    for timestep in range(2, realPose.shape[0]):
         # Moving / Sensing
         t = timestep*dt
         pose = realPose[timestep]
@@ -63,7 +64,7 @@ def main():
         u = np.array([V_est, u_l[2]])
         if VERBOSE:
             print("Real position: ", x.T)
-        
+
         # Simulate measurements
         if not TEST_SIMPLE:
             zvar = 1.1 ** 2
@@ -79,19 +80,18 @@ def main():
             print("Measurement z: ", z.T)
 
         # Run Localization
-        EKF.do_filter(u, None) #z
+        EKF.do_filter(u, None)  # z
         if VERBOSE:
             print("Time:", dt*timestep, " Position: (",
-              EKF.mu[0], ",", EKF.mu[1], ")\n")
+                  EKF.mu[0], ",", EKF.mu[1], ")\n")
 
         # Collect data for display later
         time.append(t)
-        #real_position.append(x)
+        # real_position.append(x)
         real_position.append(pose)
         measurements.append(z)
         pred.append(EKF.mu)
         cov.append(EKF.sigma)
-
 
     """
     Plotting:
@@ -121,7 +121,8 @@ def main():
 
     # Plot Error
     plt.subplot(122)
-    plt.plot(time, np.linalg.norm(real_position[:, 0:2] - pred[:, 0:2], axis=1))
+    plt.plot(time, np.linalg.norm(
+        real_position[:, 0:2] - pred[:, 0:2], axis=1))
     plt.xlabel("Time (s)")
     plt.ylabel("RMSE")
 

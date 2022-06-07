@@ -11,7 +11,7 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 3
+OPT = 0
 
 # Read Rosbag
 if OPT == 0:
@@ -194,10 +194,8 @@ if OPT == 1:
 
 if OPT == 3:
     #"""
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    fig, ax = plt.subplots()
     scanplot, = ax.plot([], [], '.')
-    #"""
     """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -205,8 +203,8 @@ if OPT == 3:
     ax.view_init(elev=20, azim=-178)
     """
     plt.title("Point Cloud Scans")
-    plt.xlabel("x")  # plt.xlim(-2.5, 2.5)
-    plt.ylabel("y")  # plt.ylim(-2.5, 2.5)
+    plt.xlabel("x"); plt.xlim(-0.5, 4)
+    plt.ylabel("y"); plt.ylim(-2.5, 2.5)
 
     #"""
     # Flatten Point Cloud Data
@@ -232,12 +230,14 @@ if OPT == 3:
     print(fixedZ_total.shape)
     #"""
 
-    """# Plot 2D "Maps"
+    """
+    # Plot 2D "Maps"
     for i in range(fixedZ_total.shape[0]):
         plt.figure()
-        ax = plt.axes()#projection='3d')
+        ax = plt.axes()
         ax.plot(fixedZ_total[i, :, 2], fixedZ_total[i, :,0], '.')
-        plt.show()"""
+        plt.show()
+    """
     
     # ANIMATION
     """ 3D:
@@ -245,10 +245,9 @@ if OPT == 3:
         scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
     ani.save('abel.gif')
     """
-    #"""
-    ani = animation.FuncAnimation(fig, update_2Dplot, fargs=(
-        scanplot, fixedZ_total), frames=fixedZ_total.shape[0], interval=100, blit=True)
-    ani.save('abel2d.gif')
+    ani = animation.FuncAnimation(fig, update_2Dplot, fargs=
+        (scanplot, fixedZ_total), frames=fixedZ_total.shape[0], interval=100, blit=True)
+    #ani.save('abel2d.gif')
     #"""
 
 plt.show()
