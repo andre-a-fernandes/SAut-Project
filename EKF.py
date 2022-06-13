@@ -9,7 +9,7 @@ Y_S = 0.16
 
 
 class ExtendedKalmanFilter:
-    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=0, TEST_DUMMY=True, INNERTIAL=True):
+    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=np.empty(0), TEST_DUMMY=True):
         """
         Filter initialization method.
 
@@ -38,8 +38,6 @@ class ExtendedKalmanFilter:
 
         # Discretization
         self.dt = dt
-        # Innertial Nav. flag
-        self.innertial = INNERTIAL
         # Simulation with Dummy data
         self.dummy = TEST_DUMMY
 
@@ -97,7 +95,6 @@ class ExtendedKalmanFilter:
             return x_bar[0:2]
 
         # Setup
-        m = np.reshape(m, (2, 1))
         z = np.zeros_like(x_bar)
         diffx = m[0] - x_bar[0]
         diffy = m[1] - x_bar[1]
@@ -107,12 +104,14 @@ class ExtendedKalmanFilter:
         z[1] = np.arctan2(m[1] - x_bar[1], m[0] - x_bar[0]) - x_bar[2]
 
         # Update Jacobian H
-        a = np.asscalar(-diffx/z[0])
-        b = np.asscalar(-diffy/z[0])
-        c = np.asscalar(diffy/(z[0]**2))
-        d = np.asscalar(-diffx/(z[0]**2))
-        self.H = np.array([[a, b, 0],
-                           [c, d, -1]])
+        #a = np.asscalar(-diffx/z[0])
+        #b = np.asscalar(-diffy/z[0])
+        #c = np.asscalar(diffy/(z[0]**2))
+        #d = np.asscalar(-diffx/(z[0]**2))
+        #self.H = np.array([[a, b, 0],
+        #                   [c, d, -1]])
+        self.H = np.array([[-diffx/z[0],        -diffy/z[0],    0],
+                           [diffy/(z[0]**2), -diffx/(z[0]**2), -1]])
 
         return z[0:2]
 
@@ -140,7 +139,7 @@ class ExtendedKalmanFilter:
         self.predict(ut)
 
         # Correction Step
-        if zt is None:
+        if zt is None or zt.size == 0:
             # If no measure is taken
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
             return
@@ -149,96 +148,17 @@ class ExtendedKalmanFilter:
             x_bar = self.mu_bar
             ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
                             [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
-                            [0,                 0,                1]])
-            x_sensor = x_bar + ROT @ [X_S, Y_S, zt[1]]
+                            [0,                     0,                1]])
+            x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
 
             # for landmark in self.map:
             #    self.update(zt, x_bar, True)
             #    min(np.trace((np.eye(3) - self.K @ self.H) @ self.sigma_bar))
+            
             if self.dummy:
                 self.update(zt, x_sensor)
                 return
-            self.update(zt, x_sensor, self.map[1])
 
-
-def main():
-    import matplotlib.pyplot as plt
-
-    # Simulation Time
-    MAX_TIME = 12
-    dt = 0.2
-
-    # Starting Guesstimate (Prob.)
-    mu0 = np.transpose([0, 0, np.deg2rad(45.0)])
-    sigma0 = np.diag([1.5, 1.3, np.deg2rad(20.0)]) ** 2
-    print("State and Cov dims: ", mu0.shape, sigma0.shape)
-
-    # Process and Observation noise Cov. Matrices
-    R = np.diag([0.1, 0.1, np.deg2rad(10.0)]) ** 2
-    Q = np.diag([1.4, 1.1]) ** 2
-
-    # Init. Kalman Filter
-    EKF = ExtendedKalmanFilter(R, Q, mu0, sigma0, dt)
-    print("Rt: \n", EKF.Rt)
-    print("Qt: \n", EKF.Qt, "\n")
-
-    # Init. Actions and Measurements
-    u = np.array([2, 0])
-    z = np.zeros((2, 1))
-
-    # Robot moving in an environment
-    real_position = []
-    measurements = []
-    pred = []
-    cov = []
-    for timestep in range(int(MAX_TIME/dt)):
-        x = np.array([dt*timestep*math.sqrt(2), dt*timestep*math.sqrt(2)])
-        z = np.array([x[0] + np.random.normal(0, 2.0),
-                      x[1] + np.random.normal(0, 1.1)])
-        print("Real position: ", x.T)
-        print("Measurement z: ", z.T)
-        # Run Filter
-        EKF.do_filter(u, z)
-        print("Time:", dt*timestep, " Position: (",
-              EKF.mu[0], ",", EKF.mu[1], ")\n")
-        # Collect for display later
-        real_position.append(x)
-        measurements.append(z)
-        pred.append(EKF.mu[0:2])
-        cov.append(EKF.sigma)
-
-
-    # Plot Trajectory
-    fig = plt.figure()
-    plt.subplot(121)
-    ax = plt.gca()
-    real_position = np.array(real_position)
-    plt.plot(real_position[:, 0], real_position[:, 1], ".-.")
-
-    # Plot Measurements
-    measurements = np.array(measurements)
-    plt.plot(measurements[:, 0], measurements[:, 1], ".")  # -.")
-
-    # Plot Mean Prediction
-    pred = np.array(pred)
-    plt.plot(pred[:, 0], pred[:, 1], ".")  # -.")
-    # Plot w/ Cov.
-    if PLOT_ELLIPSES:
-        i = 0
-        for element in cov:
-            utils.draw_cov_ellipse(pred[i, :], element, ax)
-            i += 1
-    plt.legend(["Real Position", "Measurements", "EKF Prediction"])
-
-    # Plot Error
-    plt.subplot(122)
-    plt.plot(np.linalg.norm(real_position - pred, axis=1))
-    plt.xlabel("Time (s) * 5")
-    plt.ylabel("RMSE")
-
-    # Show Graphics
-    fig.suptitle("Tests with Dummy Data")
-    plt.show()
-
-if __name__ == '__main__':
-    main()
+            # Look only at corresponding landmark (in reality just first for now)
+            l_index = np.int(zt[2, 0])
+            self.update(zt[:2, 0], x_sensor, self.map[l_index, :2])

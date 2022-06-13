@@ -2,6 +2,45 @@ import numpy as np
 import math
 from sensor_msgs import point_cloud2
 
+def sim_measurements(x: np.ndarray, Qt, lt) -> np.ndarray:
+    """
+    Simulate noisy range-bearing observation of the subset
+    of landmarks in the robot's field of view, given the true pose.
+
+    ## Parameters
+
+    x : true robot pose
+
+    Qt : measurement noise Cov. matrix (estim. of noise variance)
+
+    lt : landmark map (n_landmarks, 3)
+
+    ## Returns
+
+    obs : simulated [range, bearing, id] observations - (n_observed, 3)
+
+    """
+    # Speficic Parameters
+    fov = np.deg2rad(75)
+    MAX_RANGE = 8
+
+    observation = []  
+    fovL = (x[2] + fov/2 + 2*np.pi) % (2*np.pi)
+    fovR = (x[2] - fov/2 + 2*np.pi) % (2*np.pi)
+    
+    for landmark in lt:
+        rel_angle = np.arctan2(landmark[1] - x[1], landmark[0] - x[0])
+        rel_angle_2pi = (rel_angle + 2*np.pi) % (2*np.pi)
+        
+        # Only add measurement if it is inside the cone of vision
+        if (fovL - rel_angle_2pi + np.pi) % (2*np.pi) - np.pi > 0 and (fovR - rel_angle_2pi + np.pi) % (2*np.pi) - np.pi < 0:
+            range = np.sqrt(np.power(landmark[1] - x[1], 2) + np.power(landmark[0] - x[0], 2)) + Qt[0][0]*np.random.randn(1)
+            bearing = (rel_angle - x[2] + Qt[1][1]*np.random.randn(1) + np.pi) % (2*np.pi) - np.pi
+            if range[0] < MAX_RANGE:
+                observation.append([range[0], bearing[0], landmark[2]])
+            
+    return np.array(observation), fov
+
 def update_3Dplot(i, line, data):
     """
     Return the new point cloud to be plotted;
@@ -19,7 +58,7 @@ def update_2Dplot(i, line, data):
     line.set_data(data[i, :, 2], data[i, :, 0])
     return line,
 
-def create_pointcloud(data):
+def create_pointcloud(data) -> np.ndarray:
     """
     Extract list of points from the PointCloud2 messages.
 
@@ -44,7 +83,7 @@ def create_pointcloud(data):
         cloud.append(p)
         i += 1
     
-    return cloud  
+    return np.array(cloud)  
 
 
 def euler_from_quaternion(x: float, y: float, z: float, w: float):
