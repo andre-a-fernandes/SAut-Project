@@ -1,4 +1,4 @@
-# Astrobee SLAM: Simulataneous Localization and Mapping of a free-flying space robot using and EKF:robot:
+# Simultaneous Localization and Mapping on a free-flying space robot using EKF-SLAM :robot:
 
 Project for the Autonomous Systems course @ IST.
 
