@@ -1,4 +1,4 @@
-# SAut Project :robot:
+# Astrobee SLAM: Simulataneous Localization and Mapping of a free-flying space robot using and EKF:robot:
 
 Project for the Autonomous Systems course @ IST.
 
