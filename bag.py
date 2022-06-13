@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from bagpy import bagreader
-from utils import euler_from_quaternion, create_pointcloud, update_3Dplot
+from utils import euler_from_quaternion, create_pointcloud, update_3Dplot, update_2Dplot
 import rosbag
 import matplotlib.animation as animation
 
@@ -11,23 +11,29 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 3
+OPT = 4
 
 # Read Rosbag
 if OPT == 0:
-    b = bagreader('data/bags/2truth+EKF.bag')
+    #b = bagreader('data/bags/2truth+EKF.bag')
+    b = bagreader('data/bags/truth2.bag')
 if OPT == 1:
-    b = bagreader('data/bags/2imu.bag')
+    b = bagreader('data/bags/imu2.bag')
 if OPT == 2:
     b = bagreader('data/bags/navCam.bag')
 if OPT == 3:
     bag = rosbag.Bag('data/bags/2hazCam.bag')
+if OPT == 4:
+    b = bagreader('data/bags/optical2.bag')
+    b2 = bagreader('data/bags/landmarks2.bag')
 
 # See the topics and save them
-# print(b.topic_table)
+print(b.topic_table)
+print(b2.topic_table)
 if OPT == 0:
-    pose = b.message_by_topic('/loc/pose')
-    twist = b.message_by_topic('/loc/twist')
+    #pose = b.message_by_topic('/loc/pose')
+    #twist = b.message_by_topic('/loc/twist')
+    ekf = b.message_by_topic('/gnc/ekf')
     pose_truth = b.message_by_topic('/loc/truth/pose')
     twist_truth = b.message_by_topic('/loc/truth/twist')
 if OPT == 1:
@@ -47,15 +53,20 @@ if OPT == 3:
             print("\n")
             cloud.append(points_in_msg)
         idx += 1
+if OPT == 4:
+    of = b.message_by_topic('/loc/of/features')
+    ml = b2.message_by_topic('/loc/ml/features')
 
 
 # Create numpy arrays for the data
 if OPT == 0:
-    pose_array = np.genfromtxt(pose, delimiter=',')
-    twist_array = np.genfromtxt(twist, delimiter=',')
+    #pose_array = np.genfromtxt(pose, delimiter=',')
+    #twist_array = np.genfromtxt(twist, delimiter=',')
+    ekf_array = np.genfromtxt(ekf, delimiter=',')
     true_pose_array = np.genfromtxt(pose_truth, delimiter=',')
     true_twist_array = np.genfromtxt(twist_truth, delimiter=',')
     #print(pose_array.shape, twist_array.shape)
+    print(ekf_array.shape)
     print(true_pose_array.shape, true_twist_array.shape)
 if OPT == 1:
     imu_array = np.genfromtxt(imu, delimiter=',')
@@ -80,7 +91,8 @@ if OPT == 0:
     plt.title("Position in the World Frame")
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.plot(pose_array[:, 5], pose_array[:, 6])
+    #plt.plot(pose_array[:, 5], pose_array[:, 6])
+    plt.plot(ekf_array[:, 6], ekf_array[:, 7])
     plt.plot(true_pose_array[:, 5], true_pose_array[:, 6])
 
     # State Vars
@@ -88,16 +100,19 @@ if OPT == 0:
     plt.subplot(311)
     plt.title("State Variables (Estimates vs. Truth)")
     plt.ylabel("x")
-    plt.plot(pose_array[:, 0], pose_array[:, 5])
+    #plt.plot(pose_array[:, 0], pose_array[:, 5])
+    plt.plot(ekf_array[:, 0], ekf_array[:, 6])
     plt.plot(true_pose_array[:, 0], true_pose_array[:, 5])
     plt.subplot(312)
     plt.ylabel("y")
-    plt.plot(pose_array[:, 0], pose_array[:, 6])
+    #plt.plot(pose_array[:, 0], pose_array[:, 6])
+    plt.plot(ekf_array[:, 0], ekf_array[:, 7])
     plt.plot(true_pose_array[:, 0], true_pose_array[:, 6])
     plt.subplot(313)
     plt.ylabel("$\Theta$")
     yaw = []
     true_yaw = []
+    pose_array = ekf_array[:, 1:-1]
     for i in range(pose_array[:, 8].shape[0]):
         _, _, angle = euler_from_quaternion(
             pose_array[i, 8], pose_array[i, 9], pose_array[i, 10], pose_array[i, 11])
@@ -106,7 +121,8 @@ if OPT == 0:
         _, _, true_angle = euler_from_quaternion(
             true_pose_array[i, 8], true_pose_array[i, 9], true_pose_array[i, 10], true_pose_array[i, 11])
         true_yaw.append(true_angle)
-    plt.plot(pose_array[:, 0], np.degrees(yaw))
+    #plt.plot(pose_array[:, 0], np.degrees(yaw))
+    plt.plot(ekf_array[:, 0], np.degrees(yaw))
     plt.plot(true_pose_array[:, 0], np.degrees(true_yaw))
     plt.xlabel("Time")
 
@@ -114,20 +130,21 @@ if OPT == 0:
     plt.figure(3)
     plt.subplot(311)
     plt.ylabel("$V_x$")
-    plt.plot(twist_array[:, 0], twist_array[:, 5])
+    #plt.plot(twist_array[:, 0], twist_array[:, 5])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 5])
     plt.subplot(312)
     plt.ylabel("$V_y$")
-    plt.plot(twist_array[:, 0], twist_array[:, 6])
+    #plt.plot(twist_array[:, 0], twist_array[:, 6])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 6])
     plt.subplot(313)
     plt.ylabel("$\omega$")
-    plt.plot(true_twist_array[:, 0], true_twist_array[:, 10])
+    #plt.plot(twist_array[:, 0], twist_array[:, 10])
     plt.plot(true_twist_array[:, 0], true_twist_array[:, 10])
     plt.xlabel("Time")
 
     # Save data
-    true_pose_all = np.vstack((true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
+    true_pose_all = np.vstack(
+        (true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
     np.save("pose3D", true_pose_all.T)
     np.save("twist3D", true_twist_array[:, [5, 6, 10]])
     print((true_pose_all.T).shape)
@@ -192,22 +209,61 @@ if OPT == 1:
     np.save("theta+w", vel_all.T)
 
 if OPT == 3:
+    #"""
+    fig, ax = plt.subplots()
+    scanplot, = ax.plot([], [], '.')
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     scanplot, = ax.plot([], [], [], '.')
     ax.view_init(elev=20, azim=-178)
+    """
     plt.title("Point Cloud Scans")
-    plt.xlabel("x");# plt.xlim(-2.5, 2.5)
-    plt.ylabel("y");# plt.ylim(-2.5, 2.5)
+    plt.xlabel("x"); plt.xlim(-0.5, 4)
+    plt.ylabel("y"); plt.ylim(-2.5, 2.5)
+
+    #"""
+    # Flatten Point Cloud Data
+    fixedZ_total = []
+    N = 30000
+    # For each sensor image (cloud)
+    for i in range(cloud_array.shape[0]):
+        point_list = []
+        zero_count = 0
+        # For every point in the cloud
+        for t in range(cloud_array.shape[1]):
+            p = cloud_array[i, t, :]
+            if p[1] > -0.2 and p[1] < 0.2:
+                point_list.append(p)
+                zero_count += 1
+        # Save fixed-z pointcloud
+        point_list = np.array(point_list)
+        #print(point_list.shape)
+        point_list = np.vstack((point_list.reshape((zero_count, 4)), np.zeros((N-zero_count,4))))
+        #print(point_list.shape)
+        fixedZ_total.append(point_list)
+    fixedZ_total = np.array(fixedZ_total)
+    print(fixedZ_total.shape)
+    #"""
 
     """
-    for i in range(cloud_array.shape[0]):
-        ax = plt.axes(projection='3d')
-        ax.plot(cloud_array[i, :, 2], cloud_array[i, :, 1], cloud_array[i, :, 0], '.')
+    # Plot 2D "Maps"
+    for i in range(fixedZ_total.shape[0]):
+        plt.figure()
+        ax = plt.axes()
+        ax.plot(fixedZ_total[i, :, 2], fixedZ_total[i, :,0], '.')
         plt.show()
     """
     
-    ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
+    # ANIMATION
+    """ 3D:
+    ani = animation.FuncAnimation(fig, update_3Dplot, fargs=(
+        scanplot, cloud_array), frames=cloud_array.shape[0], interval=100, blit=True)
     ani.save('abel.gif')
+    """
+    ani = animation.FuncAnimation(fig, update_2Dplot, fargs=
+        (scanplot, fixedZ_total), frames=fixedZ_total.shape[0], interval=100, blit=True)
+    #ani.save('abel2d.gif')
+    #"""
 
 plt.show()

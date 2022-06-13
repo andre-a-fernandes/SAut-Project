@@ -90,7 +90,6 @@ def main():
 
         # Collect data for display later
         time.append(t)
-        # real_position.append(x)
         real_position.append(x)
         if TEST_SIMPLE:
             measurements.append(z)
