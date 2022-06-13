@@ -58,9 +58,6 @@ class ExtendedKalmanFilter:
                       [math.sin(x[2]), 0],
                       [0,              1]])
         x_dot = K @ u
-        #x_dot[0] = u[0]*math.cos(x[2])
-        #x_dot[1] = u[0]*math.sin(x[2])
-        #x_dot[2] = u[1]
         x_next = x + x_dot*self.dt
 
         # Update Jacobian G
@@ -104,12 +101,6 @@ class ExtendedKalmanFilter:
         z[1] = np.arctan2(m[1] - x_bar[1], m[0] - x_bar[0]) - x_bar[2]
 
         # Update Jacobian H
-        #a = np.asscalar(-diffx/z[0])
-        #b = np.asscalar(-diffy/z[0])
-        #c = np.asscalar(diffy/(z[0]**2))
-        #d = np.asscalar(-diffx/(z[0]**2))
-        #self.H = np.array([[a, b, 0],
-        #                   [c, d, -1]])
         self.H = np.array([[-diffx/z[0],        -diffy/z[0],    0],
                            [diffy/(z[0]**2), -diffx/(z[0]**2), -1]])
 
@@ -118,17 +109,31 @@ class ExtendedKalmanFilter:
     def update(self, zt, x_sensor, landmark=0, just_calc=False):
         """
         EKF update step
+
+        ## Parameters
+
+
+        ## Returns
+
+        mu :
+
+        sigma :
+
         """
         # Innovation and Kalman gain
         self.yt = zt - self.h(x_sensor, landmark)
         H_T = np.transpose(self.H)
         self.K = self.sigma_bar @ H_T @ np.linalg.inv(
-            self.H @ self.sigma_bar @ H_T + self.Qt)
+                 self.H @ self.sigma_bar @ H_T + self.Qt)
 
-        if not just_calc:
+        if just_calc:
+            mu = self.mu_bar + self.K @ self.yt
+            sigma = (np.eye(3) - self.K @ self.H) @ self.sigma_bar
+            return mu, sigma
+        else:
             # Update
             self.mu = self.mu_bar + self.K @ self.yt
-            self.sigma = (np.eye(3) - self.K @ self.H) @ self.sigma_bar
+            self.sigma = (np.eye(3) - self.K @ self.H) @ self.sigma_bar 
 
     def do_filter(self, ut, zt):
         """
@@ -144,21 +149,32 @@ class ExtendedKalmanFilter:
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
             return
         else:
-            # Sensor location in body
+            # Sensor location in the body-frame
             x_bar = self.mu_bar
             ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
                             [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
                             [0,                     0,                1]])
             x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
 
-            # for landmark in self.map:
-            #    self.update(zt, x_bar, True)
-            #    min(np.trace((np.eye(3) - self.K @ self.H) @ self.sigma_bar))
-            
             if self.dummy:
                 self.update(zt, x_sensor)
                 return
+            
+            # Choosing the best measurement w/ which to perform the update step
+            min_id = 0
+            min_trace = 1e6
+            for l_measured in zt.T:
+                #print("seen:", np.int(l_measured[2]))
+                l_index = np.int(l_measured[2])
+                _, sigma = self.update(l_measured[:2], x_sensor, self.map[l_index, :2], just_calc=True)
+                if np.trace(sigma) < min_trace:
+                    min_id = l_index
+                    min_trace = np.trace(sigma)
+            print("trace minimizer:", min_id)
+            meas_id = np.asscalar(np.where(zt[2] == min_id)[0])
+            #print(meas_id)
+            self.update(zt[:2, meas_id], x_sensor, self.map[min_id, :2])
 
-            # Look only at corresponding landmark (in reality just first for now)
-            l_index = np.int(zt[2, 0])
-            self.update(zt[:2, 0], x_sensor, self.map[l_index, :2])
+            # Look only at closest landmark detected (BEST RESULTS ???)
+            #l_index = np.int(zt[2, 0])
+            #self.update(zt[:2, 0], x_sensor, self.map[l_index, :2])

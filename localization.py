@@ -8,6 +8,7 @@ import time
 PLOT_ELLIPSES = False
 TEST_SIMPLE = False
 VERBOSE = True
+JUST_PRED = False
 
 def main():
     # Loading (Pre-processed) Simulation Data
@@ -29,12 +30,12 @@ def main():
 
     # Starting Guesstimate (prob.)
     mu0 = np.transpose([9.8, -9.8, np.deg2rad(20.0)])
-    sigma0 = np.diag([1, 1, np.deg2rad(45.0)]) ** 2
+    sigma0 = np.diag([1.2, 1.2, np.deg2rad(45.0)]) ** 2
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
     # Process noise Cov. matrix
-    Rt = np.diag([1, 1, np.deg2rad(30.0)]) ** 2
+    Rt = np.diag([0.1, 0.1, np.deg2rad(30.0)]) ** 2
     # Observation noise Cov. matrix
     #Qt = np.diag([0.8, 0.7]) ** 2
     # For LASER: 
@@ -83,7 +84,10 @@ def main():
             print("Measurements z:\n", z)
 
         # Run Localization
-        EKF.do_filter(u, z.T) # None
+        if JUST_PRED:
+            EKF.do_filter(u, None)
+        else :
+            EKF.do_filter(u, z.T)
         if VERBOSE:
             print("Time:", dt*timestep, " Position: (",
                   EKF.mu[0], ",", EKF.mu[1], ")\n")
@@ -121,7 +125,10 @@ def main():
         for element in cov:
             draw_cov_ellipse(pred[i, 0:2], element, ax)
             i += 1
-    plt.legend(["Real Position", "Measurements", "EKF Prediction"])
+    if TEST_SIMPLE:
+        plt.legend(["Real Position", "Measurements", "EKF Prediction"])
+    else:
+        plt.legend(["Real Position", "EKF Prediction"])
     plt.ylabel("y")
     plt.xlabel("x")
 
