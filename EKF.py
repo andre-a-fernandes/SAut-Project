@@ -61,7 +61,10 @@ class ExtendedKalmanFilter:
         x_next = x + x_dot*self.dt
 
         # Update Jacobian G
-        self.G = np.eye(3)
+        #self.G = np.eye(3)
+        self.G = np.array([[1, 0, -u[0]*math.sin(x[2])],
+                           [0, 1,  u[0]*math.cos(x[2])],
+                           [0, 0, 1]])
 
         return x_next
 

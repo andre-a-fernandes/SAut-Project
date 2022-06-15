@@ -1,4 +1,3 @@
-from localization import TEST_SIMPLE
 from map import choose_landmark_map
 import numpy as np
 from ekf_slam import ExtendedKalmanFilter
@@ -7,7 +6,7 @@ from utils import sim_measurements, draw_cov_ellipse
 import time
 
 PLOT_ELLIPSES = False
-VERBOSE = 2
+VERBOSE = 1
 
 def main():
     # Loading (Pre-processed) Simulation Data
@@ -27,12 +26,14 @@ def main():
         print("Map shape:", m.shape)
 
     # Starting Guesstimate (prob.)
-    x0 = np.array([0, 0, 0]).T
+    x0 = np.array([9.8, -9.8, 0]).T
     print("Robot zero-state, x0:", x0, x0.shape)
     mu0 = np.append(x0, np.zeros((2*n_landmarks, 1)))
     # "Infinity" on the diagonal plus (3x3) zero Cov. for the robot
-    sigma0 = 1e7 * np.eye(2*(n_landmarks)+3)
-    sigma0[:3,:3] = np.zeros((3,3))
+    #sigma0 = 1e6 * np.eye(2*(n_landmarks)+3)
+    #sigma0[:3,:3] = np.zeros((3,3))
+    sigma0 = np.zeros((2*(n_landmarks)+3, 2*(n_landmarks)+3))
+    sigma0[3:, 3:] = 1e6 * np.ones((2*n_landmarks, 2*n_landmarks))
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
@@ -41,10 +42,10 @@ def main():
     # Observation noise Cov. matrix
     #Qt = np.diag([1.4, 1.1]) ** 2
     # For LASER:
-    Qt = np.diag([0.02, np.deg2rad(0.1)]) ** 2
+    Qt = np.diag([0.02, np.deg2rad(6)]) ** 2
 
     # Init. Kalman Filter
-    EKF = ExtendedKalmanFilter(Rt, Qt, mu0, sigma0, dt, TEST_DUMMY=TEST_SIMPLE)
+    EKF = ExtendedKalmanFilter(Rt, Qt, mu0, sigma0, dt)
     if VERBOSE:
         print("Rt: \n", EKF.Rt)
         print("Qt: \n", EKF.Qt, "\n")
@@ -116,8 +117,9 @@ def main():
         for element in cov:
             draw_cov_ellipse(pred[i, 0:2], element, ax1)
             i += 1
+    plt.plot(pred[-1:, 3:2:], pred[-1:, 4:2:], ".", color="gold", markers="s")
     ax1.title.set_text("True Environment vs SLAM")
-    plt.legend(["Real Position", "Landmarks", "EKF Prediction"])
+    plt.legend(["Real Position", "Landmarks", "EKF Prediction", "Estimated Landmarks"])
     plt.ylabel("y")
     plt.xlabel("x")
 

@@ -9,7 +9,7 @@ Y_S = 0.16
 
 
 class ExtendedKalmanFilter:
-    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=np.empty(0), TEST_DUMMY=True):
+    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=np.empty(0), TEST_DUMMY=False):
         """
         Filter initialization method.
 
@@ -66,7 +66,12 @@ class ExtendedKalmanFilter:
         x_next = x + F_T @ x_dot*self.dt
 
         # Update Jacobian G
+        Gt = np.array([[1, 0, -u[0]*math.sin(x[2])],
+                       [0, 1,  u[0]*math.cos(x[2])],
+                       [0, 0, 1]])
         self.G = np.eye(x.size)
+        self.G[:3,:3] = Gt
+        #self.G = np.eye(x.size) + F_T @ Gt @ np.transpose(F_T)
 
         return x_next, F_T
 
@@ -104,7 +109,7 @@ class ExtendedKalmanFilter:
 
         # Setup
         z = np.zeros(2)
-        m = mu_bar[3 + j:5 + j]
+        m = mu_bar[3 + 2*(j-1):5 + 2*(j-1)]
         delta_x = m[0] - mu_bar[0]
         delta_y = m[1] - mu_bar[1]
 
@@ -120,14 +125,15 @@ class ExtendedKalmanFilter:
         N = np.int((mu_bar.size - 3)/2)
         F_j = np.zeros((5, mu_bar.size))
         F_j[:3,:3] = np.eye(3)
-        F_j[3:5, 3+j:5+j] = np.eye(2)
-        """almost_eye1 = np.vstack((np.eye(3), np.zeros((2,3))))
-        almost_eye2 = np.vstack((np.zeros((3,2)), np.eye(2)))
-        if j > 1:
-            F_j = np.hstack((almost_eye1, np.zeros((5, 2*j-2)), almost_eye2, np.zeros((5, 2*N-2*j))))
-        else:
-            F_j = np.hstack((almost_eye1, almost_eye2, np.zeros((5, 2*N-2*j))))"""
-        print(F_j.shape)
+        F_j[3:5, 3+2*(j-1):5+2*(j-1)] = np.eye(2)
+        
+        #almost_eye1 = np.vstack((np.eye(3), np.zeros((2,3))))
+        #almost_eye2 = np.vstack((np.zeros((3,2)), np.eye(2)))
+        #if j > 1:
+        #    F_j = np.hstack((almost_eye1, np.zeros((5, 2*j-2)), almost_eye2, np.zeros((5, 2*N-2*j))))
+        #else:
+        #    F_j = np.hstack((almost_eye1, almost_eye2, np.zeros((5, 2*N-2*j))))
+        #print("F_j", F_j)
 
         # Update real Jacobian
         self.H = H_j @ F_j
@@ -150,8 +156,8 @@ class ExtendedKalmanFilter:
             return mu, sigma
         else:
             # Update
-            self.mu_bar = self.mu_bar + self.K @ self.yt
-            self.sigma_bar = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar 
+            self.mu = self.mu_bar + self.K @ self.yt
+            self.sigma = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar 
 
     def do_filter(self, ut, zt, verbose=False):
         """
@@ -167,29 +173,30 @@ class ExtendedKalmanFilter:
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
             return
         else:
-            """
+            
             # Sensor location in the body-frame
             x_bar = self.mu_bar[:3]
             ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
                             [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
                             [0,                     0,                1]])
             x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
-            """
-            x_sensor = self.mu_bar[:3]
+            
+            #x_sensor = self.mu_bar[:3]
             if self.dummy:
                 self.update(zt, x_sensor)
                 return
             
             # For all observed features/landmarks
-            for l_measured in zt.T:
-                l_index = np.int(l_measured[2])
+            for l_obs in zt.T:
+                l_index = np.int(l_obs[2])
                 # Initialize landmark if not yet seen
                 if l_index not in self.seen:
-                    self.mu_bar[3+l_index] = x_sensor[0] + l_measured[0]*np.cos(l_measured[1] + x_sensor[2])
-                    self.mu_bar[4+l_index] = x_sensor[1] + l_measured[0]*np.sin(l_measured[1] + x_sensor[2])
+                    print("New landmark seen:", l_index)
+                    self.mu_bar[3+2*l_index] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
+                    self.mu_bar[4+2*l_index] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
                     self.seen.append(l_index)
                 # Update estimates as normal
-                self.update(l_measured, self.mu_bar)
+                self.update(l_obs, self.mu_bar)#, just_calc=True)
 
             # Correct for sensor offset w.r.t body-frame
             """ROT = np.array([[math.cos(self.mu[2]), -math.sin(self.mu[2]), 0],
@@ -197,9 +204,5 @@ class ExtendedKalmanFilter:
                             [0,                     0,                1]])
             self.mu[:3] = ROT @ self.mu_bar[:3]
             self.mu = self.mu_bar - np.concatenate(([X_S, Y_S], np.zeros(self.mu.size-2)))"""
-            self.mu = self.mu_bar
-            self.sigma = self.sigma_bar
-
-            # Look only at closest landmark detected (BEST RESULTS ???)
-            #l_index = np.int(zt[2, 0])
-            #self.update(zt[:2, 0], x_sensor, self.map[l_index, :2])
+            #self.mu = mu
+            #self.sigma = sigma

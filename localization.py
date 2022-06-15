@@ -7,7 +7,7 @@ import time
 
 PLOT_ELLIPSES = False
 TEST_SIMPLE = False
-VERBOSE = 2
+VERBOSE = 1
 JUST_PRED = False
 
 def main():
@@ -34,7 +34,7 @@ def main():
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
     # Process noise Cov. matrix
-    Rt = np.diag([0.08, 0.08, np.deg2rad(20.0)]) ** 2
+    Rt = np.diag([0.01, 0.01, np.deg2rad(20.0)]) ** 2
     # Observation noise Cov. matrix
     #Qt = np.diag([0.8, 0.7]) ** 2
     # For LASER: 
