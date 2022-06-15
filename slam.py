@@ -18,7 +18,7 @@ def main():
 
     # Simulation Info
     MAX_TIME = 12
-    dt = 1/62.5 * 60 # for this data
+    dt = 1/62.5 #* 6 # for this data
 
     # Define Landmark Map
     m, n_landmarks = choose_landmark_map("iss", 20)
@@ -32,8 +32,11 @@ def main():
     # "Infinity" on the diagonal plus (3x3) zero Cov. for the robot
     #sigma0 = 1e6 * np.eye(2*(n_landmarks)+3)
     #sigma0[:3,:3] = np.zeros((3,3))
-    sigma0 = np.zeros((2*(n_landmarks)+3, 2*(n_landmarks)+3))
-    sigma0[3:, 3:] = 1e6 * np.ones((2*n_landmarks, 2*n_landmarks))
+    #sigma0 = np.zeros((2*(n_landmarks)+3, 2*(n_landmarks)+3))
+    #sigma0[3:, 3:] = 1e6 * np.ones((2*n_landmarks, 2*n_landmarks))
+    # All "infinity" except state Cov.
+    sigma0 = 1e6 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
+    sigma0[:3, :3] = np.zeros((3,3))
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
@@ -63,14 +66,15 @@ def main():
     time = []
 
     # Robot in an environment
-    for timestep in range(2, realPose.shape[0], 60):
+    for timestep in range(2, realPose.shape[0]):#, 6):
         # Moving / Sensing
         t = timestep*dt
         x = realPose[timestep]
         u_l = realTwist[timestep]
         V_est = np.sqrt(u_l[0]**2 + u_l[1]**2)
-        #if V_est > 0.05:
-        #    V_est = 0.15
+        # Ensure Constant Velocity
+        if V_est > 0.05:
+            V_est = 0.2
         u = np.array([V_est, u_l[2]])
         if VERBOSE > 1:
             print("Real position: ", x[:2].T)
@@ -111,13 +115,13 @@ def main():
 
     # Plot Predicted Position
     pred = np.array(pred)
-    plt.plot(pred[:, 0], pred[:, 1], ".", color="green")
+    plt.plot(pred[:, 0], pred[:, 1], ".-.", color="green")
     if PLOT_ELLIPSES:
         i = 0
         for element in cov:
             draw_cov_ellipse(pred[i, 0:2], element, ax1)
             i += 1
-    plt.plot(pred[-1:, 3:2:], pred[-1:, 4:2:], ".", color="gold", markers="s")
+    plt.scatter(pred[-1, 3::2], pred[-1, 4::2], color="gold", marker="s")
     ax1.title.set_text("True Environment vs SLAM")
     plt.legend(["Real Position", "Landmarks", "EKF Prediction", "Estimated Landmarks"])
     plt.ylabel("y")
@@ -125,8 +129,11 @@ def main():
 
     # Plot Error
     ax2 = fig1.add_subplot(122)
-    plt.plot(time, np.linalg.norm(
-        real_position[:, 0:2] - pred[:, 0:2], axis=1))
+    plt.plot(
+        time, np.linalg.norm(real_position[:, 0:2] - pred[:, 0:2], axis=1) 
+        #+ 
+        #np.sqrt((m[:, 0] - pred[:, 3::2])**2 + (m[:, 1] - pred[:, 4::2])**2)
+        )
     plt.xlabel("Time (s)")
     plt.ylabel("RMSE")
     ax2.title.set_text("State Error (Pose + Landmarks)")

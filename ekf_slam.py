@@ -145,6 +145,7 @@ class ExtendedKalmanFilter:
         """
         # Innovation and Kalman gain
         self.yt = zt[:2] - self.h(self.mu_bar, np.int(zt[2])+1)
+        #self.yt = (self.yt + np.pi) % (2*np.pi) - np.pi   # normalization already achieved
         H_T = np.transpose(self.H)
         self.K = self.sigma_bar @ H_T @ np.linalg.inv(
                  self.H @ self.sigma_bar @ H_T + self.Qt)
