@@ -35,6 +35,8 @@ class ExtendedKalmanFilter:
 
         # Landmark Map
         self.map = map
+        # List of observed features
+        self.seen = []
 
         # Discretization
         self.dt = dt
@@ -50,7 +52,7 @@ class ExtendedKalmanFilter:
 
         ## Parameters
 
-        x : current state (x, y, theta)
+        x : current state (x, y, theta, m_1, m_2, ..., m_N)
         u : input (V, w)
         """
         # Innertial Model (Constant Velocity)
@@ -58,21 +60,24 @@ class ExtendedKalmanFilter:
                       [math.sin(x[2]), 0],
                       [0,              1]])
         x_dot = K @ u
-        x_next = x + x_dot*self.dt
+        n2_landmarks = x.shape[0] - 3
+        F_T = np.vstack((np.eye(3), np.zeros((n2_landmarks, 3))))
+        # Update state estimate
+        x_next = x + F_T @ x_dot*self.dt
 
         # Update Jacobian G
-        self.G = np.eye(3)
+        self.G = np.eye(x.size)
 
-        return x_next
+        return x_next, F_T
 
     def predict(self, ut):
         """
         EKF prediction step
         """
-        self.mu_bar = self.g(self.mu, ut)
-        self.sigma_bar = self.G @ self.sigma @ np.transpose(self.G) + self.Rt
+        self.mu_bar, F_T = self.g(self.mu, ut)
+        self.sigma_bar = self.G @ self.sigma @ np.transpose(self.G) + F_T @ self.Rt @ np.transpose(F_T)
 
-    def h(self, x_bar, m):
+    def h(self, mu_bar, j):
         """
         Gives a prediction for the measurement that
         would be taken given the state mean via the
@@ -80,60 +85,73 @@ class ExtendedKalmanFilter:
         Jacobian is calculated for linearization 
         purposes.
 
-        x_bar: current state prediction (x_bar, y_bar, theta_bar)
-        m: landmark pose (x, y)
+        ## Parameters
 
-        Output -> z: observation (r, phi) for now without z[2]: index
+        mu_bar : current state prediction (x_bar, y_bar, 
+        theta_bar, m_1, ..., m_N)
+
+        m : landmark pose (x, y)
+
+        ## Returns
+        
+        z : expected observation (r, phi)
         """
-        # Use Different Sensor Model
+        # Use "Position Sensor" Model
         if self.dummy:
             self.H = np.array([[1, 0, 0],
                                [0, 1, 0]])
-            return x_bar[0:2]
+            return mu_bar[0:2]
 
         # Setup
         z = np.zeros(2)
-        diffx = m[0] - x_bar[0]
-        diffy = m[1] - x_bar[1]
+        m = mu_bar[3 + j:5 + j]
+        delta_x = m[0] - mu_bar[0]
+        delta_y = m[1] - mu_bar[1]
 
         # Range-Bearing Model
-        z[0] = np.linalg.norm(m - x_bar[0:2])
-        z[1] = np.arctan2(m[1] - x_bar[1], m[0] - x_bar[0]) - x_bar[2]
+        z[0] = np.linalg.norm(m - mu_bar[0:2])
+        z[1] = np.arctan2(delta_y, delta_x) - mu_bar[2]
 
-        # Update Jacobian H
-        self.H = np.array([[-diffx/z[0],        -diffy/z[0],    0],
-                           [diffy/(z[0]**2), -diffx/(z[0]**2), -1]])
+        # Update Jacobian H_j (w.r.t pose and landmark j)
+        H_j = np.array([[-delta_x/z[0],        -delta_y/z[0],    0,     delta_x/z[0],       delta_y/z[0]],
+                        [delta_y/(z[0]**2), -delta_x/(z[0]**2), -1, -delta_y/(z[0]**2), delta_x/(z[0]**2)]])
+        
+        # Map to the higher dim. state-space
+        N = np.int((mu_bar.size - 3)/2)
+        F_j = np.zeros((5, mu_bar.size))
+        F_j[:3,:3] = np.eye(3)
+        F_j[3:5, 3+j:5+j] = np.eye(2)
+        """almost_eye1 = np.vstack((np.eye(3), np.zeros((2,3))))
+        almost_eye2 = np.vstack((np.zeros((3,2)), np.eye(2)))
+        if j > 1:
+            F_j = np.hstack((almost_eye1, np.zeros((5, 2*j-2)), almost_eye2, np.zeros((5, 2*N-2*j))))
+        else:
+            F_j = np.hstack((almost_eye1, almost_eye2, np.zeros((5, 2*N-2*j))))"""
+        print(F_j.shape)
 
+        # Update real Jacobian
+        self.H = H_j @ F_j
         return z
 
-    def update(self, zt, x_sensor, landmark=0, just_calc=False):
+    def update(self, zt, x_sensor, just_calc=False):
         """
         EKF update step
-
-        ## Parameters
-
-
-        ## Returns
-
-        mu :
-
-        sigma :
-
         """
         # Innovation and Kalman gain
-        self.yt = zt - self.h(x_sensor, landmark)
+        self.yt = zt[:2] - self.h(self.mu_bar, np.int(zt[2])+1)
         H_T = np.transpose(self.H)
         self.K = self.sigma_bar @ H_T @ np.linalg.inv(
                  self.H @ self.sigma_bar @ H_T + self.Qt)
+        dim = self.mu_bar.size
 
         if just_calc:
             mu = self.mu_bar + self.K @ self.yt
-            sigma = (np.eye(3) - self.K @ self.H) @ self.sigma_bar
+            sigma = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar
             return mu, sigma
         else:
             # Update
-            self.mu = self.mu_bar + self.K @ self.yt
-            self.sigma = (np.eye(3) - self.K @ self.H) @ self.sigma_bar 
+            self.mu_bar = self.mu_bar + self.K @ self.yt
+            self.sigma_bar = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar 
 
     def do_filter(self, ut, zt, verbose=False):
         """
@@ -149,32 +167,38 @@ class ExtendedKalmanFilter:
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
             return
         else:
+            """
             # Sensor location in the body-frame
-            x_bar = self.mu_bar
+            x_bar = self.mu_bar[:3]
             ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
                             [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
                             [0,                     0,                1]])
             x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
-
+            """
+            x_sensor = self.mu_bar[:3]
             if self.dummy:
                 self.update(zt, x_sensor)
                 return
             
-            # Choosing the best measurement w/ which to perform the update step
-            min_id = 0
-            min_trace = 1e6
+            # For all observed features/landmarks
             for l_measured in zt.T:
-                #print("seen:", np.int(l_measured[2]))
                 l_index = np.int(l_measured[2])
-                _, sigma = self.update(l_measured[:2], x_sensor, self.map[l_index, :2], just_calc=True)
-                if np.trace(sigma) < min_trace:
-                    min_id = l_index
-                    min_trace = np.trace(sigma)
-            if verbose:
-                print("trace minimizer:", min_id)
-            meas_id = np.asscalar(np.where(zt[2] == min_id)[0])
-            #print(meas_id)
-            self.update(zt[:2, meas_id], x_sensor, self.map[min_id, :2])
+                # Initialize landmark if not yet seen
+                if l_index not in self.seen:
+                    self.mu_bar[3+l_index] = x_sensor[0] + l_measured[0]*np.cos(l_measured[1] + x_sensor[2])
+                    self.mu_bar[4+l_index] = x_sensor[1] + l_measured[0]*np.sin(l_measured[1] + x_sensor[2])
+                    self.seen.append(l_index)
+                # Update estimates as normal
+                self.update(l_measured, self.mu_bar)
+
+            # Correct for sensor offset w.r.t body-frame
+            """ROT = np.array([[math.cos(self.mu[2]), -math.sin(self.mu[2]), 0],
+                            [math.sin(self.mu[2]), math.cos(self.mu[2]),  0],
+                            [0,                     0,                1]])
+            self.mu[:3] = ROT @ self.mu_bar[:3]
+            self.mu = self.mu_bar - np.concatenate(([X_S, Y_S], np.zeros(self.mu.size-2)))"""
+            self.mu = self.mu_bar
+            self.sigma = self.sigma_bar
 
             # Look only at closest landmark detected (BEST RESULTS ???)
             #l_index = np.int(zt[2, 0])

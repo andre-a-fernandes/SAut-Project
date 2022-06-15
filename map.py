@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print("Map shape", m.shape)
 
     # Robot
-    p = np.array([9.81, -9.81, np.deg2rad(90)])
+    p = np.array([9.81, -9.81, np.deg2rad(10)])
 
     # Variance of measurements
     Qt = np.diag([0.02, np.deg2rad(0.1)]) ** 2

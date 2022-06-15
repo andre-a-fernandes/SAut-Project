@@ -7,7 +7,7 @@ import time
 
 PLOT_ELLIPSES = False
 TEST_SIMPLE = False
-VERBOSE = True
+VERBOSE = 2
 JUST_PRED = False
 
 def main():
@@ -21,7 +21,6 @@ def main():
     # Simulation Info
     MAX_TIME = 12
     dt = 1/62.5 * 60  # for this data
-    #dt = 0.2
 
     # Define Landmark Map
     m, n_landmarks = choose_landmark_map("iss", 20)
@@ -29,13 +28,13 @@ def main():
         print("Map shape:", m.shape)
 
     # Starting Guesstimate (prob.)
-    mu0 = np.transpose([9.8, -9.8, np.deg2rad(20.0)])
+    mu0 = np.transpose([9.8, -9.8, np.deg2rad(10.0)])
     sigma0 = np.diag([1.2, 1.2, np.deg2rad(45.0)]) ** 2
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
     # Process noise Cov. matrix
-    Rt = np.diag([0.1, 0.1, np.deg2rad(30.0)]) ** 2
+    Rt = np.diag([0.08, 0.08, np.deg2rad(20.0)]) ** 2
     # Observation noise Cov. matrix
     #Qt = np.diag([0.8, 0.7]) ** 2
     # For LASER: 
@@ -51,6 +50,7 @@ def main():
     u_l = np.array([0, 0, 0])
     u = np.array([0, 0])
     z = np.zeros((2, 1))
+    V_prev = 0
 
     # Setup history vectors
     real_position = []
@@ -66,8 +66,12 @@ def main():
         x = realPose[timestep]
         u_l = realTwist[timestep]
         V_est = np.sqrt(u_l[0]**2 + u_l[1]**2)
+        #V_est = (V_est + V_prev)/2
+        if V_est > 0.05:
+            V_est = 0.15
         u = np.array([V_est, u_l[2]])
-        if VERBOSE:
+        #V_prev = V_est
+        if VERBOSE > 1:
             print("Real position: ", x[:2].T)
 
         # Simulate measurements
@@ -80,15 +84,15 @@ def main():
         else:
             z = np.array([x[0] + 0.1*np.random.normal(0, 0.15),
                           x[1] + 0.1*np.random.normal(0, 0.13)])
-        if VERBOSE:
+        if VERBOSE > 1:
             print("Measurements z:\n", z)
 
         # Run Localization
         if JUST_PRED:
             EKF.do_filter(u, None)
-        else :
-            EKF.do_filter(u, z.T)
-        if VERBOSE:
+        else:
+            EKF.do_filter(u, z.T, VERBOSE>1)
+        if VERBOSE > 1:
             print("Time:", dt*timestep, " Position: (",
                   EKF.mu[0], ",", EKF.mu[1], ")\n")
 
