@@ -1,15 +1,16 @@
 import numpy as np
 import math
-import utils
 
 PLOT_ELLIPSES = False
 # Sensor Position relative to the Body-Frame
 X_S = 0.16
 Y_S = 0.16
+# Mahalanobis distance parameter
+ALPHA = 1.5
 
 
 class ExtendedKalmanFilter:
-    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=np.empty(0), TEST_DUMMY=False):
+    def __init__(self, Rt, Qt, mu_0, sigma_0, dt, map=np.empty(0)):
         """
         Filter initialization method.
 
@@ -35,13 +36,10 @@ class ExtendedKalmanFilter:
 
         # Landmark Map
         self.map = map
-        # List of observed features
-        self.seen = []
+        self.Nt = 0
 
         # Discretization
         self.dt = dt
-        # Simulation with Dummy data
-        self.dummy = TEST_DUMMY
 
     def g(self, x, u):
         """
@@ -101,12 +99,6 @@ class ExtendedKalmanFilter:
         
         z : expected observation (r, phi)
         """
-        # Use "Position Sensor" Model
-        if self.dummy:
-            self.H = np.array([[1, 0, 0],
-                               [0, 1, 0]])
-            return mu_bar[0:2]
-
         # Setup
         z = np.zeros(2)
         m = mu_bar[3 + 2*(j-1):5 + 2*(j-1)]
@@ -136,29 +128,57 @@ class ExtendedKalmanFilter:
         #print("F_j", F_j)
 
         # Update real Jacobian
-        self.H = H_j @ F_j
-        return z
+        H = H_j @ F_j
+        return z , H
 
-    def update(self, zt, x_sensor, just_calc=False):
+    def update(self, x_sensor, zt, verbose : bool):
         """
         EKF update step
         """
-        # Innovation and Kalman gain
-        self.yt = zt[:2] - self.h(self.mu_bar, np.int(zt[2])+1)
-        #self.yt = (self.yt + np.pi) % (2*np.pi) - np.pi   # normalization already achieved
-        H_T = np.transpose(self.H)
-        self.K = self.sigma_bar @ H_T @ np.linalg.inv(
-                 self.H @ self.sigma_bar @ H_T + self.Qt)
+        # Setup index of next observed landmark
+        N_tplus1 = self.Nt + 1
+        # Setup sum arrays/matrices
         dim = self.mu_bar.size
+        sumKY = np.zeros_like(self.mu_bar)
+        sumKH = np.zeros((dim, dim))
+        
+        # For all observed features/landmarks
+        i = 0
+        j = []
+        pi = []
+        Psi = []
+        self.H = []
+        K_t = []
+        for l_obs in zt.T:
+            self.mu_bar[3+2*N_tplus1] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
+            self.mu_bar[4+2*N_tplus1] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
+            # Has the landmark been seen ?
+            for k in range(0, N_tplus1):              
+                # Innovation and Kalman gain
+                z_k, H_tk = self.h(self.mu_bar, k)
+                yt = l_obs[:2] - z_k
+                self.H.append(H_tk)
+                Psi.append(self.H[k] @ self.sigma_bar @ self.H[k].T + self.Qt)
+                pi.append(np.transpose(yt) @ np.linalg.inv(Psi[k]) @ yt)
+                H = np.array(self.H)
 
-        if just_calc:
-            mu = self.mu_bar + self.K @ self.yt
-            sigma = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar
-            return mu, sigma
-        else:
-            # Update
-            self.mu = self.mu_bar + self.K @ self.yt
-            self.sigma = (np.eye(dim) - self.K @ self.H) @ self.sigma_bar 
+            # Actually check for distance to others
+            pi.append(ALPHA)
+            j.append(np.argmin(pi))
+            if verbose:
+                print(i)
+            self.Nt = max(self.Nt, j[i])
+            print("Landmarks seen:", self.Nt)
+            K_t.append(self.sigma_bar @ np.transpose(self.H[j[i]-1]) @ Psi[j[i]-1])
+
+            # Calculate auxiliary sums
+            z_ji, _ = self.h(self.mu_bar, j[i]-1)
+            sumKY += K_t[i] @ (l_obs[:2] - z_ji)
+            sumKH += K_t[i] @ self.H[j[i]-1]
+            i += 1
+        # Update
+        self.mu = self.mu_bar + sumKY
+        self.sigma = (np.eye(dim) - sumKH) @ self.sigma_bar
 
     def do_filter(self, ut, zt, verbose=False):
         """
@@ -172,39 +192,6 @@ class ExtendedKalmanFilter:
         if zt is None or zt.size == 0:
             # If no measure is taken
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
-            return
-        else:
-            
-            # Sensor location in the body-frame
-            x_bar = self.mu_bar[:3]
-            ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
-                            [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
-                            [0,                     0,                1]])
-            x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
-            
-            #x_sensor = self.mu_bar[:3]
-            if self.dummy:
-                self.update(zt, x_sensor)
-                return
-            
-            # For all observed features/landmarks
-            for l_obs in zt.T:
-                l_index = np.int(l_obs[2])
-                # Initialize landmark if not yet seen
-                if l_index not in self.seen:
-                    print("New landmark seen:", l_index)
-                    self.mu_bar[3+2*l_index] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
-                    self.mu_bar[4+2*l_index] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
-                    self.seen.append(l_index)
-                # Update estimates as normal
-                #mu, sigma = 
-                self.update(l_obs, self.mu_bar)#, just_calc=True)
-
-            # Correct for sensor offset w.r.t body-frame
-            """ROT = np.array([[math.cos(self.mu[2]), -math.sin(self.mu[2]), 0],
-                            [math.sin(self.mu[2]), math.cos(self.mu[2]),  0],
-                            [0,                     0,                1]])
-            self.mu[:3] = ROT @ self.mu_bar[:3]
-            self.mu = self.mu_bar - np.concatenate(([X_S, Y_S], np.zeros(self.mu.size-2)))"""
-            #self.mu = mu
-            #self.sigma = sigma
+        else:            
+            x_sensor = self.mu_bar[:3]
+            self.update(x_sensor, zt, verbose)

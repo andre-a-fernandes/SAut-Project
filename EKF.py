@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import utils
 
 PLOT_ELLIPSES = False
 # Sensor Position relative to the Body-Frame

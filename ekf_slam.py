@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import utils
 
 PLOT_ELLIPSES = False
 # Sensor Position relative to the Body-Frame
@@ -174,15 +173,14 @@ class ExtendedKalmanFilter:
             self.mu, self.sigma = self.mu_bar, self.sigma_bar
             return
         else:
-            
-            # Sensor location in the body-frame
+            """# Sensor location in the body-frame
             x_bar = self.mu_bar[:3]
             ROT = np.array([[math.cos(x_bar[2]), -math.sin(x_bar[2]), 0],
                             [math.sin(x_bar[2]), math.cos(x_bar[2]),  0],
                             [0,                     0,                1]])
-            x_sensor = x_bar + ROT @ [X_S, Y_S, 0]
-            
-            #x_sensor = self.mu_bar[:3]
+            x_sensor = x_bar + ROT @ [X_S, Y_S, 0]"""
+            x_sensor = self.mu_bar[:3]
+
             if self.dummy:
                 self.update(zt, x_sensor)
                 return

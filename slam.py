@@ -1,5 +1,6 @@
 from map import choose_landmark_map
 import numpy as np
+#from ekf_slam import ExtendedKalmanFilter
 from ekf_uknown_correspondences import ExtendedKalmanFilter
 import matplotlib.pyplot as plt
 from utils import sim_measurements
@@ -7,7 +8,7 @@ from plot import plot_environment_and_estimation, plot_state, plot_error
 import time
 
 PLOT_ELLIPSES = False
-VERBOSE = 1
+VERBOSE = 2
 
 def main():
     # Loading (Pre-processed) Simulation Data
@@ -88,7 +89,7 @@ def main():
             print("Measurements z:\n", z)
 
         # Run EKF-SLAM
-        EKF.do_filter(u, z.T, VERBOSE>2)
+        EKF.do_filter(u, z.T, VERBOSE>1)
         if VERBOSE > 1:
             print("Time:", dt*timestep, " Position: (",
                   EKF.mu[0], ",", EKF.mu[1], ")\n")
