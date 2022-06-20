@@ -6,7 +6,7 @@ PLOT_ELLIPSES = False
 X_S = 0.16
 Y_S = 0.16
 # Mahalanobis distance parameter
-ALPHA = 1.5
+ALPHA = 40
 
 
 class ExtendedKalmanFilter:
@@ -139,46 +139,53 @@ class ExtendedKalmanFilter:
         N_tplus1 = self.Nt + 1
         # Setup sum arrays/matrices
         dim = self.mu_bar.size
-        sumKY = np.zeros_like(self.mu_bar)
-        sumKH = np.zeros((dim, dim))
         
         # For all observed features/landmarks
         i = 0
-        j = []
-        pi = []
-        Psi = []
-        self.H = []
-        K_t = []
+        pi = 1e6 * np.ones(np.int((dim-3)/2))
+        #Psi = []
+        #self.H = []
         for l_obs in zt.T:
-            self.mu_bar[3+2*N_tplus1] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
-            self.mu_bar[4+2*N_tplus1] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
-            # Has the landmark been seen ?
-            for k in range(0, N_tplus1):              
-                # Innovation and Kalman gain
-                z_k, H_tk = self.h(self.mu_bar, k)
-                yt = l_obs[:2] - z_k
-                self.H.append(H_tk)
-                Psi.append(self.H[k] @ self.sigma_bar @ self.H[k].T + self.Qt)
-                pi.append(np.transpose(yt) @ np.linalg.inv(Psi[k]) @ yt)
-                H = np.array(self.H)
+            if self.Nt < np.int((dim-3)/2):
+                # New landmark hypothesis
+                self.mu_bar[3+2*self.Nt] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
+                self.mu_bar[4+2*self.Nt] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
+            
+                # Get landmark data association
+                for k in range(1, N_tplus1):              
+                    # Innovation (and Jacobian H)
+                    z_k, H_tk = self.h(self.mu_bar, k) # receives k = "j+1"
+                    yt = l_obs[:2] - z_k
+                    #self.H.append(H_tk)
+                    # Innov. Covariance
+                    Psi_k = H_tk @ self.sigma_bar @ H_tk.T + self.Qt
+                    #Psi.append(Psi_k)
+                    pi[k-1] = yt.T @ np.linalg.inv(Psi_k) @ yt
 
-            # Actually check for distance to others
-            pi.append(ALPHA)
-            j.append(np.argmin(pi))
-            if verbose:
-                print(i)
-            self.Nt = max(self.Nt, j[i])
-            print("Landmarks seen:", self.Nt)
-            K_t.append(self.sigma_bar @ np.transpose(self.H[j[i]-1]) @ Psi[j[i]-1])
-
-            # Calculate auxiliary sums
-            z_ji, _ = self.h(self.mu_bar, j[i]-1)
-            sumKY += K_t[i] @ (l_obs[:2] - z_ji)
-            sumKH += K_t[i] @ self.H[j[i]-1]
-            i += 1
+                # Check distance to others (test hypothesis)
+                pi[self.Nt] = ALPHA
+                j = np.argmin(pi) + 1
+                # keep 2 smallest distances
+                idxs = np.argpartition(pi, 2)
+                a, b = idxs[:2] + 1
+                if verbose:
+                    print("distances:", pi)
+                    print(i)
+                    print(j," - vs. -", a, b)
+                self.Nt = max(self.Nt, j)
+                print("Landmarks seen:", self.Nt)
+                # Innov. and Gain
+                z_ji, H_ji = self.h(self.mu_bar, j)
+                Psi_j = H_ji @ self.sigma_bar @ H_ji.T + self.Qt
+                K_i = self.sigma_bar @ H_ji.T @ np.linalg.inv(Psi_j)
+                self.mu_bar += K_i @ (l_obs[:2] - z_ji)
+                #print(l_obs[:2] - z_ji)
+                self.sigma_bar = (np.eye(dim) - K_i @ H_ji) @ self.sigma_bar
+                i += 1
+        
         # Update
-        self.mu = self.mu_bar + sumKY
-        self.sigma = (np.eye(dim) - sumKH) @ self.sigma_bar
+        self.mu = self.mu_bar
+        self.sigma = self.sigma_bar
 
     def do_filter(self, ut, zt, verbose=False):
         """

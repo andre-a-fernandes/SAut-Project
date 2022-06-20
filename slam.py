@@ -1,31 +1,33 @@
 from map import choose_landmark_map
 import numpy as np
-#from ekf_slam import ExtendedKalmanFilter
-from ekf_uknown_correspondences import ExtendedKalmanFilter
+from ekf_slam import ExtendedKalmanFilter
+#from ekf_unknown_correspondences import ExtendedKalmanFilter
 import matplotlib.pyplot as plt
 from utils import sim_measurements
 from plot import plot_environment_and_estimation, plot_state, plot_error
 import time
 
 PLOT_ELLIPSES = False
-VERBOSE = 2
+VERBOSE = 1
 
 def main():
     # Loading (Pre-processed) Simulation Data
-    realPose = np.load("data\pose3D.npy")[1:]
-    realTwist = np.load("data\\twist3D.npy")[1:]
-    imu = np.load("data\\theta+w.npy")[1:]
+    realPose = np.load("data\pose3D2.npy")[1:]
+    realTwist = np.load("data\\twist3D2.npy")[1:]
+    imu = np.load("data\\theta+w2.npy")[1:]
     if VERBOSE:
         print("Simulator Data:", realPose.shape, realTwist.shape, imu.shape)
 
     # Simulation Info
     MAX_TIME = 12
-    dt = 1/62.5 #* 6 # for this data
+    DOWNSAMPLE = 1
+    dt = 1/62.5 * DOWNSAMPLE # for this data
 
     # Define Landmark Map
     m, n_landmarks = choose_landmark_map("iss", 20)
     if VERBOSE:
         print("Map shape:", m.shape)
+    n_landmarks += 1
 
     # Starting Guesstimate (prob.)
     x0 = np.array([9.8, -9.8, 0]).T
@@ -45,8 +47,6 @@ def main():
     # Process noise Cov. matrix
     Rt = np.diag([0.1, 0.1, np.deg2rad(20.0)]) ** 2
     # Observation noise Cov. matrix
-    #Qt = np.diag([1.4, 1.1]) ** 2
-    # For LASER:
     Qt = np.diag([0.02, np.deg2rad(6)]) ** 2
 
     # Init. Kalman Filter
@@ -68,7 +68,7 @@ def main():
     time = []
 
     # Robot in an environment
-    for timestep in range(2, realPose.shape[0]):#, 6):
+    for timestep in range(2, realPose.shape[0], DOWNSAMPLE):
         # Moving / Sensing
         t = timestep*dt
         x = realPose[timestep]

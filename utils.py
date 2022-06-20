@@ -21,7 +21,7 @@ def sim_measurements(x: np.ndarray, Qt, lt) -> np.ndarray:
 
     """
     # Speficic Parameters
-    fov = np.deg2rad(75)
+    fov = np.deg2rad(80)
     MAX_RANGE = 8
 
     observation = []  

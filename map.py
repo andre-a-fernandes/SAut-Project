@@ -21,11 +21,13 @@ def choose_landmark_map(form, scale=2) -> np.ndarray:
         l = scale*np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
     elif form == "line":
         l = scale*np.array([[0, 0], [0.5, 0], [1, 0]])
-    elif form == "slightly":
-        l = scale*np.array([[0, 0], [0.2, 0], [0.5, 0.1], [1, -0.1]])
+    elif form == "iss_L":
+        l = np.array([[11.5, -10], [12, -5.5], [9.5, -7], [9.5, -3.5], 
+                     [12, -1.25], [10, 1.3],  [6, 1.25], [2, 1.25], [8, -1.25],
+                     [4.5, -1.25], [-1, 0.5], [1, -1]])
     elif form == "iss":
         l = np.array([[11.5, -10], [12, -5.5], [9.5, -7], [9.5, -3.5], 
-                     [12, -1.25], [10, 1.25], [6, 1.25], [2, 1.25], [8, -1.25],
+                     [12, -1.25], [11.8, 4.5], [10, 1.3], [10, 7],  [6, 1.25], [2, 1.25], [8, -1.25],
                      [4.5, -1.25], [-1, 0.5], [1, -1]])
     else :
         l = -1
@@ -66,6 +68,8 @@ if __name__ == '__main__':
     print("shape of measurements", z.shape)
 
     plt.figure()
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
     plt.plot(realPose[:, 0], realPose[:, 1], ".-.")
     plt.scatter(m[:, 0], m[:, 1], color="tab:red", marker="d")
     for i in range(N):
