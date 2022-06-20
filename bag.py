@@ -11,25 +11,26 @@ import matplotlib.animation as animation
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 4
+OPT = 0
 
 # Read Rosbag
 if OPT == 0:
     #b = bagreader('data/bags/2truth+EKF.bag')
-    b = bagreader('data/bags/truth2.bag')
+    b = bagreader('data/bags/truth4.bag')
 if OPT == 1:
-    b = bagreader('data/bags/imu2.bag')
+    b = bagreader('data/bags/imu4.bag')
 if OPT == 2:
     b = bagreader('data/bags/navCam.bag')
 if OPT == 3:
     bag = rosbag.Bag('data/bags/2hazCam.bag')
 if OPT == 4:
-    b = bagreader('data/bags/optical2.bag')
-    b2 = bagreader('data/bags/landmarks2.bag')
+    b = bagreader('data/bags/optical3.bag')
+    b2 = bagreader('data/bags/landmarks3.bag')
 
 # See the topics and save them
 print(b.topic_table)
-print(b2.topic_table)
+if OPT == 4:
+    print(b2.topic_table)
 if OPT == 0:
     #pose = b.message_by_topic('/loc/pose')
     #twist = b.message_by_topic('/loc/twist')
@@ -145,8 +146,8 @@ if OPT == 0:
     # Save data
     true_pose_all = np.vstack(
         (true_pose_array[:, 5], true_pose_array[:, 6], true_yaw))
-    np.save("pose3D", true_pose_all.T)
-    np.save("twist3D", true_twist_array[:, [5, 6, 10]])
+    np.save("pose3D4", true_pose_all.T)
+    np.save("twist3D4", true_twist_array[:, [5, 6, 10]])
     print((true_pose_all.T).shape)
     print(true_twist_array[:, [5, 6, 10]].shape)
 
@@ -206,7 +207,7 @@ if OPT == 1:
     # Save data
     vel_all = np.vstack((yaw_imu, imu_array[:, 20]))
     print((vel_all.T).shape)
-    np.save("theta+w", vel_all.T)
+    np.save("theta+w4", vel_all.T)
 
 if OPT == 3:
     #"""

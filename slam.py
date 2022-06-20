@@ -1,25 +1,26 @@
+from pickle import TRUE
 from map import choose_landmark_map
 import numpy as np
 from ekf_slam import ExtendedKalmanFilter
-#from ekf_unknown_correspondences import ExtendedKalmanFilter
+from ekf_unknown_correspondences import ExtendedKalmanFilter as EKFUnknown
 import matplotlib.pyplot as plt
 from utils import sim_measurements
 from plot import plot_environment_and_estimation, plot_state, plot_error
 import time
 
-PLOT_ELLIPSES = False
+UNKNOWN = True
 VERBOSE = 1
+PLOT_ELLIPSES = False
 
 def main():
     # Loading (Pre-processed) Simulation Data
-    realPose = np.load("data\pose3D2.npy")[1:]
-    realTwist = np.load("data\\twist3D2.npy")[1:]
-    imu = np.load("data\\theta+w2.npy")[1:]
+    realPose = np.load("data\pose3D3.npy")[1:14000]
+    realTwist = np.load("data\\twist3D3.npy")[1:14000]
+    imu = np.load("data\\theta+w3.npy")[1:14000]
     if VERBOSE:
         print("Simulator Data:", realPose.shape, realTwist.shape, imu.shape)
 
     # Simulation Info
-    MAX_TIME = 12
     DOWNSAMPLE = 1
     dt = 1/62.5 * DOWNSAMPLE # for this data
 
@@ -27,7 +28,7 @@ def main():
     m, n_landmarks = choose_landmark_map("iss", 20)
     if VERBOSE:
         print("Map shape:", m.shape)
-    n_landmarks += 1
+    #n_landmarks += 1
 
     # Starting Guesstimate (prob.)
     x0 = np.array([9.8, -9.8, 0]).T
@@ -50,7 +51,10 @@ def main():
     Qt = np.diag([0.02, np.deg2rad(6)]) ** 2
 
     # Init. Kalman Filter
-    EKF = ExtendedKalmanFilter(Rt, Qt, mu0, sigma0, dt)
+    if UNKNOWN:
+        EKF = EKFUnknown(Rt, Qt, mu0, sigma0, dt)
+    else:
+        EKF = ExtendedKalmanFilter(Rt, Qt, mu0, sigma0, dt)
     if VERBOSE:
         print("Rt: \n", EKF.Rt)
         print("Qt: \n", EKF.Qt, "\n")
@@ -76,7 +80,7 @@ def main():
         V_est = np.sqrt(u_l[0]**2 + u_l[1]**2)
         # Ensure Constant Velocity
         if V_est > 0.05:
-            V_est = 0.2
+            V_est = 0.20
         u = np.array([V_est, u_l[2]])
         if VERBOSE > 1:
             print("Real position: ", x[:2].T)

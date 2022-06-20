@@ -167,7 +167,10 @@ class ExtendedKalmanFilter:
                 j = np.argmin(pi) + 1
                 # keep 2 smallest distances
                 idxs = np.argpartition(pi, 2)
-                a, b = idxs[:2] + 1
+                a, b = idxs[:2]
+                if pi[b]/pi[a] < 1.5:
+                    print("skipping observation")
+                    continue
                 if verbose:
                     print("distances:", pi)
                     print(i)
