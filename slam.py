@@ -1,12 +1,12 @@
-from pickle import TRUE
-from map import choose_landmark_map
 import numpy as np
+import time
+import matplotlib.pyplot as plt
+
+from map import choose_landmark_map
 from ekf_slam import ExtendedKalmanFilter
 from ekf_unknown_correspondences import ExtendedKalmanFilter as EKFUnknown
-import matplotlib.pyplot as plt
 from utils import sim_measurements
 from plot import plot_environment_and_estimation, plot_state, plot_error
-import time
 
 UNKNOWN = True
 VERBOSE = 1
@@ -14,9 +14,9 @@ PLOT_ELLIPSES = False
 
 def main():
     # Loading (Pre-processed) Simulation Data
-    realPose = np.load("data\pose3D3.npy")[1:14000]
-    realTwist = np.load("data\\twist3D3.npy")[1:14000]
-    imu = np.load("data\\theta+w3.npy")[1:14000]
+    realPose = np.load("data\pose3D.npy")[1:]
+    realTwist = np.load("data\\twist3D.npy")[1:]
+    imu = np.load("data\\theta+w.npy")[1:]
     if VERBOSE:
         print("Simulator Data:", realPose.shape, realTwist.shape, imu.shape)
 

@@ -1,17 +1,20 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from bagpy import bagreader
-from utils import euler_from_quaternion, create_pointcloud, update_3Dplot, update_2Dplot
 import rosbag
 import matplotlib.animation as animation
+from bagpy import bagreader
+
+from utils import euler_from_quaternion, create_pointcloud, update_3Dplot, update_2Dplot
+
 
 # OPTIONS:
 # 0 - POSE
 # 1 - IMU
 # 2 - MAP
 # 3 - SCAN
-OPT = 0
+# 4 - FEATURES
+OPT = 4
 
 # Read Rosbag
 if OPT == 0:
@@ -24,8 +27,8 @@ if OPT == 2:
 if OPT == 3:
     bag = rosbag.Bag('data/bags/2hazCam.bag')
 if OPT == 4:
-    b = bagreader('data/bags/optical3.bag')
-    b2 = bagreader('data/bags/landmarks3.bag')
+    b = bagreader('data/bags/optical2.bag')
+    b2 = bagreader('data/bags/landmarks2.bag')
 
 # See the topics and save them
 print(b.topic_table)

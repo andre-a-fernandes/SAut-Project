@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 from utils import sim_measurements
 
 
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     realPose = np.load("data\pose3D.npy")[1:]
 
     # Choose landmark map
-    m, N = choose_landmark_map("iss")
+    m, N = choose_landmark_map("iss_L")
     print("Map shape", m.shape)
 
     # Robot
