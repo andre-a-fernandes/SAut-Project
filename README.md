@@ -8,16 +8,21 @@ This project consists of both localizing an Astrobee robot (3 of which are, at t
 
 Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
 
-< Operate the EKF localization code >
-    - localization
-        - imgs.py
-            - Removes outliers and performs PCA
-            - K-Means clustering 
-
-### > Extended Kalman Filter (`ekf.py`)
+### > Environment map definition (`map.py`)
 
 ### > Environment map definition (`map.py`)
 
+### > Operate the EKF localization code
+
+    - localization
+        - localization.py
+            - Performs localization on a given map using the EKF
+        - ekf.py
+            - Implements the Extended Kalman Filter (EKF)
+        - registration.py
+            - Matches two point-clouds using ICP
+
 ### > Misc. handy methods (`utils.py`)
 
-The remaining files only contain functions used by the previous scripts.
+    - utils.py
+        - only contains functions used by the previous scripts.
