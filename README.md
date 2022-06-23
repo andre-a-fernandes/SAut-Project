@@ -4,14 +4,19 @@ Project done for the Autonomous Systems course @ IST, Portugal.
 
 This project consists of both localizing an Astrobee robot (3 of which are, at the time of writing this, aboard the ISS) as well as mapping its environment using a finite number of landmarks, through an Extended Kalman Filter.
 
-Further techinques are explored in order to counteract robot kidnapping ("instantaneous" change of pose by an external actor).
-
 ## File Structure
 
-### > Operate the code with `localization.py`
+Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
+
+### > Operate the EKF localization code 
+    - imgs.py
+        - Removes outliers and performs PCA
+        - K-Means clustering 
 
 ### > Extended Kalman Filter (`ekf.py`)
 
 ### > Environment map definition (`map.py`)
 
 ### > Misc. handy methods (`utils.py`)
+
+The remaining files only contain functions used by the previous scripts.
