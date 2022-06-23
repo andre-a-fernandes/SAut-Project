@@ -12,11 +12,13 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
         - bags
             - Raw data obtained through rosbag recordings in the Astrobee simulator.
         - processed
-            - Already-processed daat intoNumpy array format.
+            - Already-processed data into Numpy array format.
         - bag.py
     - main.py
+        - Performs EKF-SLAM and outputs plots for analysis/comparison.
     - ekf_slam.py
     - ekf_unknown_correpondences.py
+        - Both implement the SLAM algorithm, with the latter dealing with data association via a Maximum Likelihood estimator.
     - utils.py
     
 Full breakdown:
