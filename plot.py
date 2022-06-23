@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 
 from utils import draw_cov_ellipse
 
-
 def plot_environment_and_estimation(fig1, real_position, m, pred, cov, PLOT_ELLIPSES : bool):
     # Plot trajectory and true environment
     ax1 = fig1.add_subplot(121)

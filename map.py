@@ -1,9 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import sim_measurements
-
-
 def choose_landmark_map(form, scale=2) -> np.ndarray:
     """
     Set up landmark map (with IDs).
@@ -41,6 +38,7 @@ def choose_landmark_map(form, scale=2) -> np.ndarray:
 
 
 if __name__ == '__main__':
+    from utils import sim_measurements
 
     # Mov. Data
     realPose = np.load("data\pose3D.npy")[1:]

@@ -6,9 +6,10 @@ from map import choose_landmark_map
 from ekf_slam import ExtendedKalmanFilter
 from ekf_unknown_correspondences import ExtendedKalmanFilter as EKFUnknown
 from utils import sim_measurements
+from matching.icp import icp
 from plot import plot_environment_and_estimation, plot_state, plot_error
 
-UNKNOWN = True
+UNKNOWN = False
 VERBOSE = 1
 PLOT_ELLIPSES = False
 
@@ -25,13 +26,13 @@ def main():
     dt = 1/62.5 * DOWNSAMPLE # for this data
 
     # Define Landmark Map
-    m, n_landmarks = choose_landmark_map("iss", 20)
+    m, n_landmarks = choose_landmark_map("iss_L", 20)
     if VERBOSE:
         print("Map shape:", m.shape)
     #n_landmarks += 1
 
     # Starting Guesstimate (prob.)
-    x0 = np.array([9.8, -9.8, 0]).T
+    x0 = np.array([0, 0, 0]).T
     print("Robot zero-state, x0:", x0, x0.shape)
     mu0 = np.append(x0, np.zeros((2*n_landmarks, 1)))
     # "Infinity" on the diagonal plus (3x3) zero Cov. for the robot
@@ -40,7 +41,7 @@ def main():
     #sigma0 = np.zeros((2*(n_landmarks)+3, 2*(n_landmarks)+3))
     #sigma0[3:, 3:] = 1e6 * np.ones((2*n_landmarks, 2*n_landmarks))
     # All "infinity" except state Cov.
-    sigma0 = 1e6 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
+    sigma0 = 1e4 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
     sigma0[:3, :3] = np.zeros((3,3))
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
@@ -110,6 +111,12 @@ def main():
     """
     real_position = np.array(real_position)
     pred = np.array(pred)
+    # Align prediction via landmarks
+    pred[:, 0] += 9.8
+    pred[:, 1] -= 9.8
+    pred[:, 3::2] += 9.8
+    pred[:, 4::2] -= 9.8
+    #transf_history, aligned = icp(m[:,:2], pred[:, ])
     fig1 = plt.figure(1)
     plot_environment_and_estimation(fig1, real_position, m, pred, cov, PLOT_ELLIPSES)
 

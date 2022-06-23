@@ -1,3 +1,8 @@
+#########################################################
+#                                                       #   
+#   Code courtesy of https://github.com/richardos/icp   #
+#                                                       #    
+#########################################################
 import math
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
