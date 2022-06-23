@@ -6,7 +6,20 @@ This project consists of both localizing an Astrobee robot (3 of which are, at t
 
 ## File Structure
 
+    - data
+        - bags
+            -
+        - processed
+            - Already-processed daat intoNumpy array format.
+        - bag.py
+    - main.py
+    - ekf_slam.py
+    - ekf_unknown_correpondences.py
+    - utils.py
+    
 Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
+
+Full breakdown:
 
 ### > Python EKF-SLAM implementation
 
@@ -40,11 +53,3 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
             - Matches two point-clouds using ICP
 
 ### > Misc. handy methods (`utils.py` and `plot.py`)
-
-    - data
-        - bags 
-        - bag.py
-    - main.py
-    - ekf_slam.py
-    - ekf_unknown_correpondences.py
-    - utils.py
