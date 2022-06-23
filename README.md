@@ -39,11 +39,10 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
 
 ### > Misc. handy methods (`utils.py` and `plot.py`)
 
-
-- data
-    - bags 
-    - bag.py
-- main.py
-- ekf_slam.py
-- ekf_unknown_correpondences.py
-- utils.py
+    - data
+        - bags 
+        - bag.py
+    - main.py
+    - ekf_slam.py
+    - ekf_unknown_correpondences.py
+    - utils.py
