@@ -18,7 +18,8 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
         - Performs EKF-SLAM and outputs plots for analysis/comparison.
     - ekf_slam.py
     - ekf_unknown_correpondences.py
-        - Both implement the SLAM algorithm, with the latter dealing with data association via a Maximum Likelihood estimator.
+        - Both implement the SLAM algorithm, with the latter dealing with data association
+        via a Maximum Likelihood estimator.
     - utils.py
     
 Full breakdown:
