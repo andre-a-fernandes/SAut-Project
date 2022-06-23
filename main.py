@@ -117,12 +117,14 @@ def main():
     pred[:, 3::2] += 9.8
     pred[:, 4::2] -= 9.8
     #transf_history, aligned = icp(m[:,:2], pred[:, ])
+
     fig1 = plt.figure(1)
     plot_environment_and_estimation(fig1, real_position, m, pred, cov, PLOT_ELLIPSES)
 
     # Plot Error
-    ax2 = fig1.add_subplot(122)
-    plot_error(ax2, time, real_position, pred)
+    ax2 = fig1.add_subplot(132)
+    ax3 = fig1.add_subplot(133)
+    plot_error(ax2, ax3, time, real_position, m, pred)
 
     # State Vars
     fig2 = plt.figure(2)

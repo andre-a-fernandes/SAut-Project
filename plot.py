@@ -5,7 +5,7 @@ from utils import draw_cov_ellipse
 
 def plot_environment_and_estimation(fig1, real_position, m, pred, cov, PLOT_ELLIPSES : bool):
     # Plot trajectory and true environment
-    ax1 = fig1.add_subplot(121)
+    ax1 = fig1.add_subplot(131)
     plt.plot(real_position[:, 0], real_position[:, 1], ".-.")
     plt.scatter(m[:, 0], m[:, 1], color="tab:red", marker="d")
 
@@ -26,15 +26,17 @@ def plot_environment_and_estimation(fig1, real_position, m, pred, cov, PLOT_ELLI
     plt.ylabel("y")
     plt.xlabel("x")
 
-def plot_error(ax2, time, real_position, pred):
-    ax2.plot(
-        time, np.linalg.norm(real_position[:, 0:2] - pred[:, 0:2], axis=1) 
-        #+ 
-        #np.sqrt((m[:, 0] - pred[:, 3::2])**2 + (m[:, 1] - pred[:, 4::2])**2)
-        )
+def plot_error(ax2, ax3, time, real_position, m, pred):
+    pose_err = np.linalg.norm(real_position[:, 0:2] - pred[:, 0:2], axis=1)
+    ax2.plot(time, pose_err)
+    print("Final Pose MSE is:", pose_err[-1])
+    lm_err = np.array(np.sqrt((m[:, 0] - pred[:, 3::2])**2 + (m[:, 1] - pred[:, 4::2])**2))
+    ax3.plot(time, lm_err)
+    print("Average Final Landmark Position MSE is:", lm_err[-1].sum()/lm_err[-1].shape[0])
     plt.xlabel("Time (s)")
     plt.ylabel("RMSE")
-    ax2.title.set_text("State Error (Pose + Landmarks)")
+    ax2.title.set_text("Robot State Error")
+    ax3.title.set_text("Landmark Position Error")
 
 def plot_state(fig2, time, real_position, pred):
     ax3 = plt.gca()
@@ -51,4 +53,18 @@ def plot_state(fig2, time, real_position, pred):
     plt.ylabel("$\Theta$")
     plt.plot(time, np.degrees(pred[:, 2]))
     plt.plot(time, np.degrees(real_position[:, 2]))
+    
+    #Errors
+    plt.figure(3)
+    plt.subplot(311)
+    plt.title("Absolute State Error")
+    plt.ylabel("$x$")
+    plt.plot(time, np.abs(pred[:, 0] - real_position[:, 0]))
+    plt.subplot(312)
+    plt.ylabel("$y$")
+    plt.plot(time, np.abs(pred[:, 1] - real_position[:, 1]))
+    plt.subplot(313)
+    plt.ylabel("$\Theta$")
+    pred_theta = pred[:, 2]
+    plt.plot(time, np.abs(np.degrees(pred_theta - real_position[:, 2])))
 
