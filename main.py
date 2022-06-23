@@ -12,6 +12,7 @@ from plot import plot_environment_and_estimation, plot_state, plot_error
 UNKNOWN = False
 VERBOSE = 1
 PLOT_ELLIPSES = False
+DOWNSAMPLE = 1
 
 def main():
     # Loading (Pre-processed) Simulation Data
@@ -22,7 +23,6 @@ def main():
         print("Simulator Data:", realPose.shape, realTwist.shape, imu.shape)
 
     # Simulation Info
-    DOWNSAMPLE = 1
     dt = 1/62.5 * DOWNSAMPLE # for this data
 
     # Define Landmark Map
@@ -41,7 +41,7 @@ def main():
     #sigma0 = np.zeros((2*(n_landmarks)+3, 2*(n_landmarks)+3))
     #sigma0[3:, 3:] = 1e6 * np.ones((2*n_landmarks, 2*n_landmarks))
     # All "infinity" except state Cov.
-    sigma0 = 1e4 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
+    sigma0 = 1e5 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
     sigma0[:3, :3] = np.zeros((3,3))
     if VERBOSE:
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
@@ -112,10 +112,10 @@ def main():
     real_position = np.array(real_position)
     pred = np.array(pred)
     # Align prediction via landmarks
-    pred[:, 0] += 9.8
-    pred[:, 1] -= 9.8
-    pred[:, 3::2] += 9.8
-    pred[:, 4::2] -= 9.8
+    pred[:, 0] += 9.80
+    pred[:, 1] -= 9.81
+    pred[:, 3::2] += 9.80
+    pred[:, 4::2] -= 9.81
     #transf_history, aligned = icp(m[:,:2], pred[:, ])
 
     fig1 = plt.figure(1)

@@ -65,6 +65,5 @@ def plot_state(fig2, time, real_position, pred):
     plt.plot(time, np.abs(pred[:, 1] - real_position[:, 1]))
     plt.subplot(313)
     plt.ylabel("$\Theta$")
-    pred_theta = pred[:, 2]
-    plt.plot(time, np.abs(np.degrees(pred_theta - real_position[:, 2])))
+    plt.plot(time, np.abs(np.degrees(pred[:, 2] - real_position[:, 2])))
 
