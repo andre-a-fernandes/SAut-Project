@@ -6,9 +6,11 @@ This project consists of both localizing an Astrobee robot (3 of which are, at t
 
 ## File Structure
 
+Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
+
     - data
         - bags
-            -
+            - Raw data obtained through rosbag recordings in the Astrobee simulator.
         - processed
             - Already-processed daat intoNumpy array format.
         - bag.py
@@ -17,8 +19,6 @@ This project consists of both localizing an Astrobee robot (3 of which are, at t
     - ekf_unknown_correpondences.py
     - utils.py
     
-Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
-
 Full breakdown:
 
 ### > Python EKF-SLAM implementation
