@@ -8,9 +8,24 @@ This project consists of both localizing an Astrobee robot (3 of which are, at t
 
 Install required dependencies with `pip install -r requirements.txt` # NOT YET DONE #
 
-### > Environment map definition (`map.py`)
+### > Python EKF-SLAM implementation
+
+    - main.py
+        - Performs EKF-SLAM and outputs plots of real trajectory and landmark location vs. estimation
+    - ekf_slam.py
+        - Implements the EKF-SLAM with known data association
+    - ekf_unknown_correpondences.py
+        - Implements the EKF-SLAM with data association via a Maximum Likelihood estimator
 
 ### > Environment map definition (`map.py`)
+
+### > Collected robot data
+
+    - data
+        - bags
+            - blah
+    - bag.py
+        - reads rosbags collected in the robot
 
 ### > Operate the EKF localization code
 
@@ -22,7 +37,4 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
         - registration.py
             - Matches two point-clouds using ICP
 
-### > Misc. handy methods (`utils.py`)
-
-    - utils.py
-        - only contains functions used by the previous scripts.
+### > Misc. handy methods (`utils.py` and `plot.py`)
