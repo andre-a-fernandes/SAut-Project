@@ -23,7 +23,9 @@ Install required dependencies with `pip install -r requirements.txt` # NOT YET D
 
     - data
         - bags
-            - blah
+            - Raw data obtained via rosbag recordings in the Astrobee simulator.
+        - processed
+            - Already-processed data into numpy array format.
     - bag.py
         - reads rosbags collected in the robot
 
