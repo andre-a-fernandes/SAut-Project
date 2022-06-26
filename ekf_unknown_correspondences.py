@@ -176,7 +176,8 @@ class ExtendedKalmanFilter:
                     print(i)
                     print(j," - vs. -", a, b)
                 self.Nt = max(self.Nt, j)
-                print("Landmarks seen:", self.Nt)
+                if verbose:
+                    print("Landmarks seen:", self.Nt)
                 # Innov. and Gain
                 z_ji, H_ji = self.h(self.mu_bar, j)
                 Psi_j = H_ji @ self.sigma_bar @ H_ji.T + self.Qt

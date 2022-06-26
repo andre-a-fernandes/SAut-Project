@@ -10,15 +10,15 @@ from matching.icp import icp
 from plot import plot_environment_and_estimation, plot_state, plot_error
 
 UNKNOWN = False
-VERBOSE = 1
+VERBOSE = 0
 PLOT_ELLIPSES = False
 DOWNSAMPLE = 1
 
 def main():
     # Loading (Pre-processed) Simulation Data
-    realPose = np.load("data\pose3D.npy")[1:]
-    realTwist = np.load("data\\twist3D.npy")[1:]
-    imu = np.load("data\\theta+w.npy")[1:]
+    realPose = np.load("data\pose3D2.npy")[1:]
+    realTwist = np.load("data\\twist3D2.npy")[1:]
+    imu = np.load("data\\theta+w2.npy")[1:]
     if VERBOSE:
         print("Simulator Data:", realPose.shape, realTwist.shape, imu.shape)
 
@@ -26,14 +26,13 @@ def main():
     dt = 1/62.5 * DOWNSAMPLE # for this data
 
     # Define Landmark Map
-    m, n_landmarks = choose_landmark_map("iss_L", 20)
+    m, n_landmarks = choose_landmark_map("iss", 20)
     if VERBOSE:
         print("Map shape:", m.shape)
     #n_landmarks += 1
 
     # Starting Guesstimate (prob.)
     x0 = np.array([0, 0, 0]).T
-    print("Robot zero-state, x0:", x0, x0.shape)
     mu0 = np.append(x0, np.zeros((2*n_landmarks, 1)))
     # "Infinity" on the diagonal plus (3x3) zero Cov. for the robot
     #sigma0 = 1e6 * np.eye(2*(n_landmarks)+3)
@@ -44,6 +43,7 @@ def main():
     sigma0 = 1e5 * np.ones((2*n_landmarks+3, 2*n_landmarks+3))
     sigma0[:3, :3] = np.zeros((3,3))
     if VERBOSE:
+        print("Robot zero-state, x0:", x0, x0.shape)
         print("Mean State and Covariance Matrix dims:", mu0.shape, sigma0.shape)
 
     # Process noise Cov. matrix
@@ -83,19 +83,18 @@ def main():
         if V_est > 0.05:
             V_est = 0.20
         u = np.array([V_est, u_l[2]])
-        if VERBOSE > 1:
-            print("Real position: ", x[:2].T)
 
         # Simulate measurements
         zp, FOV = sim_measurements(x, Qt, m)
         if zp.size:
             z = zp
-        if VERBOSE > 1:
-            print("Measurements z:\n", z)
 
         # Run EKF-SLAM
         EKF.do_filter(u, z.T, VERBOSE>1)
+        
         if VERBOSE > 1:
+            print("Real position: ", x[:2].T)
+            print("Measurements z:\n", z)
             print("Time:", dt*timestep, " Position: (",
                   EKF.mu[0], ",", EKF.mu[1], ")\n")
 
@@ -131,7 +130,7 @@ def main():
     plot_state(fig2, time, real_position, pred)
 
     # Show Graphics
-    plt.show()
+    plt.show(block=True)
 
 
 if __name__ == '__main__':

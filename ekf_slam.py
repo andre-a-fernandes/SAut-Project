@@ -190,7 +190,8 @@ class ExtendedKalmanFilter:
                 l_index = np.int(l_obs[2])
                 # Initialize landmark if not yet seen
                 if l_index not in self.seen:
-                    print("New landmark seen:", l_index)
+                    if verbose:
+                        print("New landmark seen:", l_index)
                     self.mu_bar[3+2*l_index] = x_sensor[0] + l_obs[0]*np.cos(l_obs[1] + x_sensor[2])
                     self.mu_bar[4+2*l_index] = x_sensor[1] + l_obs[0]*np.sin(l_obs[1] + x_sensor[2])
                     self.seen.append(l_index)
