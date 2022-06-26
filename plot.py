@@ -30,6 +30,7 @@ def plot_error(ax2, ax3, time, real_position, m, pred):
     pose_err = np.linalg.norm(real_position[:, 0:2] - pred[:, 0:2], axis=1)
     ax2.plot(time, pose_err)
     print("Final Pose MSE is:", pose_err[-1])
+    print("Average Pose MSE is:", pose_err[:-1].mean())
     lm_err = np.array(np.sqrt((m[:, 0] - pred[:, 3::2])**2 + (m[:, 1] - pred[:, 4::2])**2))
     ax3.plot(time, lm_err)
     print("Average Final Landmark Position MSE is:", lm_err[-1].sum()/lm_err[-1].shape[0])
